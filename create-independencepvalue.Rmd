@@ -1,0 +1,439 @@
+---
+title: "Creating the ``r params$package_name`` R package"
+author: "Arkajyoti Saha"
+date: "September 6, 2022"
+knit: litr::render
+params:
+  package_name: "independencepvalue" # <-- change this to your package name
+  package_parent_dir: "." # <-- relative to this file's location
+---
+
+<!-- This Rmd file contains all the code needed to define an R package.  Press "Knit" in RStudio or more generally run `rmarkdown::render("create-independencepvalue.Rmd")` to generate the R package.  Remember that when you want to modify anything about the R package, you should modify this document rather than the package that is outputted.
+-->
+
+Note: This package was generated using the `litr` R package, which lets you define full R packages in a single R Markdown file. For more on `litr`, see [here](https://github.com/jacobbien/litr-project/tree/main/litr).
+
+## Package setup
+
+We start by specifying the information needed in the DESCRIPTION file of the R package.
+
+```{r package-setup, message=FALSE, results='hide'}
+usethis::create_package(
+  path = ".",
+  fields = list(
+    Package = params$package_name,
+    Version = "0.0.1",
+    Title = "independencepvalue: Computes the p-value of testing independence between groups of Gaussian variables",
+    Description = "Discovers block diagonal structure from a given covariance matrix through thresholding and then tests whether a block is independent with the remaining variables.",
+    `Authors@R` = c(person(
+      given = "Arkajyoti",
+      family = "Saha",
+      email = "arkajyotisaha93@gmail.com",
+      role = c("aut", "cre")
+      ), person("Daniela", "Witten", role="aut", email="dwitten@u.washington.edu"), person("Jacob", "Bien", role="aut", email="jbien@usc.edu"))
+  )
+)
+usethis::use_mit_license(copyright_holder = "A. Saha")
+```
+
+
+## Functions in the package
+
+### When groups are pre-specified
+
+We first focus on evaluating the p-value when the groups are pre-specified. For this purpose, we define two additional functions, that will come in handy later.
+
+First, we import some required packages:
+
+```{r}
+usethis::use_package("stats")
+usethis::use_package("amen")
+usethis::use_package("matrixStats")
+usethis::use_package("volesti")
+usethis::use_package("matrixStats")
+usethis::use_package("SimplicialCubature")
+usethis::use_package("future.apply")
+usethis::use_package("geometry")
+usethis::use_package("rcdd")
+```
+
+
+Next, we define a function to simulate from Wilks' lambda distribution:
+
+```{r}
+#' Function for MC simulation for classical inference
+#'
+#' Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, simulates from Wilks' lambda distribution with appropriate parameters.
+#' 
+#' @param p p_1+p_2
+#' @param rp min(p_1, p_2)
+#' @param n sample size
+#' @return A sample from Wilks' lambda distribution
+#' @keywords internal
+MC_function_classical <- function(p, rp, n){
+  tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
+  tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+  eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
+  F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  statistic <- 1/prod(1+F_X_eigenvalues)
+  # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
+  return(statistic)
+}
+```
+
+
+Next, we make use of `MC_function_classical` for a function to test the independence of two pre-specified groups of variables:
+```{r}
+#' Function to test the independence of two pre-specified groups of variables
+#'
+#' This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilk's lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
+#' 
+#' @param S the covariance matrix of the data matrix \eqn{X}, where \eqn{X} = (\eqn{X_1} \eqn{X_2})
+#' @param n the number of data points
+#' @param CP the pre-specified grouping of the variables
+#' @param k the group to be tested for independence with the remaining variables
+#' @param mc_iter the number of Monte Carlo iterations to approximate the p-value
+#' @return The p-value for the test of independence. 
+#' @examples
+#' # Simulates a 10 x 3 X_1 from N(0, I)
+#' set.seed(1)
+#' X_1 <- matrix(rnorm(30), 10, 3)
+#'
+##' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
+#' set.seed(2)
+#' X_2 <- matrix(rnorm(20), 10, 2)
+#'
+#' # Compute the covariance matrix of X = (X_1 X_2).
+#' covX <- cov(cbind(X_1, X_2))
+#' # tests for a difference in means between X_1 and X_2
+#' classical_p_val(S=covX, n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100)
+#' @export 
+classical_p_val <- function(S, n, CP, k, mc_iter= 1000){
+  p <- nrow(S)
+  ptemp <- sum(CP==k)
+  if(2*ptemp >= p){
+    p1 <- ptemp
+    S11_x <- as.matrix(S[which(CP==k), which(CP==k)])#S11
+    S22_x <- as.matrix(S[which(CP!=k), which(CP!=k)])#S22
+    S12_x <- as.matrix(S[which(CP==k), which(CP!=k)])#S_12 
+  }
+  if(2*ptemp < p){
+    p1 = p - ptemp
+    S11_x <- as.matrix(S[which(CP!=k), which(CP!=k)])#S11
+    S22_x <- as.matrix(S[which(CP==k), which(CP==k)])#S22
+    S12_x <- as.matrix(S[which(CP!=k), which(CP==k)])#S_12 
+  }
+  #ensures that p2 <= p1.
+  p2 <- p - p1
+  if(p1 > p2){rp <- p2}#Define r(P)
+  if(p1 <= p2){rp <- p1} 
+  inv_S11_x <- solve(S11_x)#inv(S11)
+  inv_S11_x_half <- amen::mhalf(inv_S11_x)#S_11^{-1/2} 
+  inv_S22_x <- solve(S22_x)#inv(S22)
+  inv_S22_x_half <- amen::mhalf(inv_S22_x)#S_22^{-1/2} 
+  tilde_S12_x <- inv_S11_x_half %*% S12_x %*% inv_S22_x_half#S_12^W = covariance matrix of whitened X_1 and X_2
+  svdecom <- svd(tilde_S12_x)#compact SVD 
+  singular_values <- svdecom$d#Lambda
+  test_stat <- prod(1-singular_values^2)#test statistic 
+  if(rp == 1){
+    classic_p_val <- 1 - stats::pbeta(singular_values^2, (p - 3)/2 + 1, (n - p - 2)/2 + 1) 
+    # for r(p) = 1, we have simple evaluation of p_{LRT}.
+  }
+  if(rp > 1){
+    sip <- future.apply::future_sapply(1:mc_iter, function(i) MC_function_classical(p, rp, n), future.seed = TRUE)
+    #MC simulation to approximate the p-value. Simulates W and T. Returns vector of statistic. 
+    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test stistic is smaller if it is away from null. 
+  }
+  return(classic_p_val)
+}
+```
+
+
+Next, we demonstrate an example use of the `classical_p_val`:
+
+```{r}
+# Simulates a 10 x 3 \eqn{X_1} from \eqn{N(0, I)}
+set.seed(1)
+X_1 <- matrix(rnorm(30), 10, 3)
+
+# Simulates a 10 x 2 \eqn{X_2} from \eqn{N(0, I)} independently of \eqn{X_1}
+set.seed(2)
+X_2 <- matrix(rnorm(20), 10, 2)
+# Compute the covariance matrix of \eqn{X} = (\eqn{X_1} \eqn{X_2}).
+covX <- cov(cbind(X_1, X_2))
+# tests for a difference in means between \eqn{X_1} and \eqn{X_2}
+classical_p_val(S=covX, n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100)
+```
+
+We also add a code to test the function `classical_p_val`:
+
+```{r}
+testthat::test_that("classical_p_val works", {
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  testthat::expect_equal(classical_p_val(S=cov(X), n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100), 0.83)
+})
+```
+
+### How we partition variables into groups
+
+Given a correlation matrix and a threshold $c$ with $0 < c< 1$, we obtain the block diagonal structure by thresholding the absolute values of the entries of the correlation matrix at c. 
+
+```{r}
+#' Function to obtain block diagonal structure through thresholding
+#'
+#' Given the correlation matrix matrix of a data matrix \eqn{X}, this function discovrs the block-diagonal structure by thresholding the absolute values of the entries of the correlation matrix at c. We create an adjacency matrix with the elements being 1 iff the corresponding member of the correlation matrix has an absolute value greater than or equal to \eqn{c}. This is equivalent to performing a single linkage hierarcical clustering on the variables, with the distance matrix given by \eqn{1 - |R|} and truncating the tree at \eqn{1-c}.
+#' 
+#' @param R the \eqn{p \time p} correlation matrix of the data
+#' @param c the threshold
+#' @return A \eqn{p} length integer vector whose \eqn{i^{th}} element denotes the group \eqn{i^{th}} variable belongs to.
+#' @examples
+#' # Simulates a 10 x 5 X from N(0, I)
+#' set.seed(1)
+#' X <- matrix(rnorm(50), 10, 5)
+#' # Compute the coreelation matrix of X.
+#' corX <- cor(X)
+#' # Compute the block diagonal structure at c=0.5
+#' block_diag(R=corX, c=0.5)
+#' @export 
+block_diag <- function(R, c){
+  dis_R <- 1 - abs(R)
+  test <- stats::as.dist(dis_R, diag = TRUE)
+  clust_result <- stats::hclust(test, method = "single")
+  return(stats::cutree(clust_result, h=(1 - c)))
+}
+```
+
+A test for `block_diag`:
+
+```{r}
+testthat::test_that("block_diag works", {
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  testthat::expect_equal(length(unique(block_diag(cor(X), c=0.5))), 3)
+})
+```
+
+### When groups are selected with `block_diag`
+
+We will be using selective inference to obtain the p-value for testing the hypothesis of independence of a selected group of varirables $P$ (obtained using `block_diag`) with the remaining variables.  First, we define a function to simulate from the joint distribution of the canonical correlations and check if $P$ is recovered by applying `block_diag` on the perturbed covariance matrix. 
+
+```{r}
+#' Function for MC simulation for selective inference
+#'
+#' For a given group of variables \eqn{P}, simulates from the joint distribution of the canonical correlations and check if \eqn{P} is recovered by applying `block_diag` on the perturbed covariance matrix. This condition can be characterized as the vector of canonical correlations \eqn{\Lambda} belonging in a convex polytope \eqn{A\Lambda \leq b}, where the matrix \eqn{A} and the vector \eqn{b} are functions of the threshold \eqn{c} and the sample covariance matrix.
+#' 
+#' @param p p_1+p_2
+#' @param rp min(p_1, p_2)
+#' @param n sample size
+#' @param A matrix with \code{rp} rows
+#' @param b numeric vector
+#' @return
+#' \item{statistic}{Test statistic corresponding to simulated \eqn{\Lambda}.}
+#' \item{status}{Logical vector if the simulated \eqn{\Lambda} satisfies \eqn{A\Lambda \leq b}.}
+#' @keywords internal
+MC_function_selective <- function(p, rp, n, A, b){
+  if(nrow(A)!=length(b)){stop("error: number of rows of matrix A must be equal to the numebr of rows of vector b")}
+  tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
+  tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+    
+  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+  eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
+  F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  statistic <- 1/prod(1+F_X_eigenvalues)
+  # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
+  status <- all(A %*% sqrt(F_X_eigenvalues/(1+F_X_eigenvalues)) <= b)
+  return(list(statistic=statistic, status=status))
+}
+```
+
+Next, we need a function to evaluate the joint density of the canonical correlations which will be useful numerical integration based approximation of the p-value:
+```{r}
+#' Function to evaluate  the joint density of the canonical correlations
+#'
+#' This function evaluates the joint density of the canonical correlations at a specific value \eqn{Lambda}.
+#' 
+#' @param n sample size
+#' @param p total number of variables
+#' @param rp minimum of the size of the two groups of variables. 
+#' @param a a scaling constant
+#' @param Lambda the \code{rp} length vector where the joint density is to be evaluatedl \eqn{1 > Lambda[1]\ge Lambda[2] \ge ... \ge Lambda[rp] > 0} 
+#' @return Scaled joined density of canonial correlations, evaluated at \eqn{Lambda}.
+#' @keywords internal
+dCCA <- function(n, p, rp, a, Lambda){
+  c1 <- (p - 2*rp) * sum(log(Lambda))
+  c2 <- ((n - p - 2)/2) * sum(log(1-Lambda^2))
+  dip <- matrix(1, length(Lambda), length(Lambda))
+  dip[lower.tri(dip)] <- stats::dist(Lambda^2)
+  c3 <- sum(log(matrixStats::colProds(dip)))
+  return(exp(a+c1+c2+c3))
+}
+```
+
+Next, we make use of `MC_function_selective` and `dCCA` to compute the p-value for test of independece, when the group $P$ is obtained from `block_diag`.
+
+```{r}
+#' Function to test the independence of a data-dependent group of variables with the remaining variables
+#'
+#' This tests the null hypothesis of independence between two groups of Gaussian variables, where the groups are obtained via thresholding with \code{block_diag}.
+#' 
+#' @param S the covariance matrix of the data matrix \eqn{X}, where \eqn{X} = (\eqn{X_1} \eqn{X_2})
+#' @param n the number of data points
+#' @param CP the grouping of the variables, an outcome of \code{block_diag}
+#' @param c the threshold
+#' @param k the group to be tested for independence with the remaining variables
+#' @param d0 a natural number; ff the number of canonical correlations is greater than \code{d0}, Monte Carlo simulation will be used to approximate the p-value for computational convenience; default value is 5
+#' @param mc_iter the number of Monte Carlo iterations used to approximate the p-value
+#' @return The selective p-value for the test of independence.
+#' @examples
+#' # Simulates a 10 x 5 X from N(0, I)
+#' set.seed(1)
+#' X <- matrix(rnorm(50), 10, 5)
+#'
+#' # Compute the correlation matrix of X.
+#' corX <- cor(X)
+#' # Use 'block_diag' to obtain any block diagonal structure
+#' block_diag_structure <- block_diag(corX, c= 0.5)
+#' # test for independence of the variables in group 1 with the remaining variables
+#' selective_p_val(S=cov(X), n=10, CP=block_diag_structure, c=0.5, k=1, d0=5, mc_iter=100)
+#' @export 
+selective_p_val <- function(S, n, CP, c, k, d0=5, mc_iter= 1000){
+  p <- nrow(S)
+  ptemp <- sum(CP==k)
+  if(2*ptemp >= p){
+    p1 <- ptemp
+    S11_x <- as.matrix(S[which(CP==k), which(CP==k)])#S11
+    S22_x <- as.matrix(S[which(CP!=k), which(CP!=k)])#S22
+    S12_x <- as.matrix(S[which(CP==k), which(CP!=k)])#S_12 
+  }
+  if(2*ptemp < p){
+    p1 = p - ptemp
+    S11_x <- as.matrix(S[which(CP!=k), which(CP!=k)])#S11
+    S22_x <- as.matrix(S[which(CP==k), which(CP==k)])#S22
+    S12_x <- as.matrix(S[which(CP!=k), which(CP==k)])#S_12 
+  }
+  #ensures that p2 <= p1.
+  p2 <- p - p1
+  inv_S11_x <- solve(S11_x)
+  inv_S11_x_half <- amen::mhalf(inv_S11_x)
+  inv_S22_x <- solve(S22_x)
+  inv_S22_x_half <- amen::mhalf(inv_S22_x)
+  tilde_S12_x <- inv_S11_x_half %*% S12_x %*% inv_S22_x_half
+  svdecom <- svd(tilde_S12_x)
+  singular_values <- svdecom$d
+  test_stat <- prod(1-singular_values^2)
+  A_x <- inv_S11_x_half %*% svdecom$u
+  Gamma_x <- t(svdecom$v) %*% inv_S22_x_half
+  L_x <- S11_x %*% A_x
+  R_x <- Gamma_x %*% S22_x
+  p1 <- max(nrow(L_x), ncol(R_x))
+  p2 <- nrow(R_x)
+  A <- matrix(0, (2 * p1 * p2 + 2 *p2), p2)
+  for(i in 1:p1){
+    for(j in 1:p2){
+      A[2*((i-1) * p2 + j)-1, ] <- L_x[i,] * R_x[,j]/sqrt(S11_x[i,i]*S22_x[j, j])
+      A[2*((i-1) * p2 + j), ] <- -L_x[i,] * R_x[,j]/sqrt(S11_x[i,i]*S22_x[j, j])
+    }
+  }
+  if(p2 > 1){
+    for(k in 1:(p2-1)){
+      A[2*p1*p2 + k,k:(k+1)] <- c(-1, 1)
+    }
+  }
+  A[2 * p1 * p2 + p2, p2] <- -1
+  for(k in 1:(p2)){
+    A[2*p1*p2 + p2 + k,k] <- 1
+  }
+  b <- c(rep(c, 2 * p1 * p2), rep(0, p2), rep(1, p2))
+  du <- 0
+  if(p2 <= d0){
+    P <- rcdd::makeH(A, b, x = NULL)
+    PV_d <- rcdd::scdd(P)
+    if(p2 == 1){
+      c1 <- max(PV_d$output[,3])^2
+      I1 <- 0
+      if(singular_values^2 < max(PV_d$output[,3])^2)
+      {
+        c1 <- singular_values^2
+        I1_tot <- stats::pbeta(c( c1, max(PV_d$output[,3])^2), (p - 3)/2 + 1, (n - p - 2)/2 + 1)
+        I1 <- I1_tot[2] - I1_tot[1]
+      }
+      I_denom_tot <- stats::pbeta(c(min(PV_d$output[,3])^2, max(PV_d$output[,3])^2), (p - 3)/2 + 1, (n - p - 2)/2 + 1)
+      I_denom <- I_denom_tot[2] - I_denom_tot[1]
+      du <- I1/I_denom
+    }
+    if(p2 > 1){
+      V_d <- as.matrix(PV_d$output[ , - c(1, 2)])
+      Pi <- volesti::Vpolytope(V = V_d)
+      triang = try(geometry::delaunayn(Pi@V))
+      prod_res <- 1
+      for(i in 1:p2){
+        prod_res <- prod_res * gamma((n - i)/2)/(gamma((n - p2 -  i)/2) * gamma((p1 - i + 1)/2) * gamma((p2 - i + 1)/2))
+      }
+      alpha <- log(pi^(p2/2) * 2^p *  prod_res)
+      f_tot <- function(x) {
+        dt <- dCCA(n, p, p2, alpha, x)
+        return(c(dt, dt* (prod(1 - x^2) < test_stat)))
+      }
+      part_int <- function(i, Pi, triang, f_tot){
+        if(stats::var(round(Pi@V[triang[i,], ][,1], 5)) == 0) Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])] <- Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])]*(1 - 10^(-5))
+        return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i,], ]), fDim = 2)$integral)
+      }
+      par_I_tot_list <- future.apply::future_sapply(1:nrow(triang), part_int, Pi, triang, f_tot, future.seed=TRUE)
+      du <- sum(par_I_tot_list[2,])/sum(par_I_tot_list[1,])
+    }
+  }
+  if(du <= 0 || du >= 1 || p2 > d0){
+    sip <- future.apply::future_sapply(1:mc_iter, function(i) MC_function_selective(p, p2, n, A, b), future.seed=TRUE)
+    zp <- sum(as.numeric(sip[2,]))
+    if(zp < 100){
+      sip <- future.apply::future_sapply(1:(min((mc_iter * 100/zp), 100000)), function(i) MC_function_selective(p, p2, n, A, b), future.seed=TRUE)
+    }
+    du <- mean(test_stat >= sip[1,][sip[2,] == TRUE])
+  }
+  select_p_val <- du
+  return(c(select_p_val))
+}
+```
+Next, we demonstrate an example use of the `selective_p_val`:
+
+```{r}
+# Simulates a 10 x 5 \eqn{X_1} from \eqn{N(0, I)}
+set.seed(1)
+X <- matrix(rnorm(50), 10, 5)
+
+# Compute the correlation matrix of X.
+corX <- cor(X)
+# Use 'block_diag' to obtain any block diagonal structure
+block_diag_structure <- block_diag(corX, c= 0.5)
+# test for independence of the variables in group 1 with the remaining variables
+selective_p_val(S=cov(X), n=10, CP=block_diag_structure, c=0.5, k=1, d0=5, mc_iter=100)
+```
+
+We also add a code to test the function `selective_p_val`:
+
+```{r}
+testthat::test_that("selective_p_val works", {
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  corX <- cor(cbind(X))
+  block_diag_structure <- block_diag(corX, c= 0.5)
+  testthat::expect_equal(round(selective_p_val(S=cov(X), n=10, CP=block_diag_structure, c=0.5, k=1, d0=5, mc_iter=100),2), 0.27)
+})
+```
+
+
+
+## Documenting the package and building
+
+We finish by running commands that will document, build, and install the package.  It may also be a good idea to check the package from within this file.
+
+```{r}
+rm(list = ls())
+litr::document() # <-- use instead of devtools::document()
+#devtools::build()
+#devtools::install()
+#devtools::check(document = FALSE)
+```
+
