@@ -23,8 +23,8 @@ usethis::create_package(
   fields = list(
     Package = params$package_name,
     Version = "0.0.1",
-    Title = "independencepvalue: Computes the p-value of testing independence between groups of Gaussian variables",
-    Description = "Discovers block diagonal structure from a given covariance matrix through thresholding and then tests whether a block is independent with the remaining variables.",
+    Title = "Testing independence between groups of Gaussian variables",
+    Description = "Discovers block diagonal structure from a given covariance matrix through thresholding correlations and then tests whether a block is independent from the remaining variables in a fashion that accounts for the selection of the blocks.  A function for testing in the classical setting where these groups are predetermined is also implemented.",
     `Authors@R` = c(person(
       given = "Arkajyoti",
       family = "Saha",
@@ -39,23 +39,19 @@ usethis::use_mit_license(copyright_holder = "A. Saha")
 
 ## Functions in the package
 
-### When groups are pre-specified
-
-We first focus on evaluating the p-value when the groups are pre-specified. For this purpose, we define two additional functions, that will come in handy later.
-
 First, we import some required packages:
 
-```{r}
+```{r, message=FALSE}
 usethis::use_package("stats")
-usethis::use_package("amen")
-usethis::use_package("matrixStats")
-usethis::use_package("volesti")
-usethis::use_package("matrixStats")
-usethis::use_package("SimplicialCubature")
 usethis::use_package("future.apply")
-usethis::use_package("geometry")
-usethis::use_package("rcdd")
 ```
+
+We use `future.apply` for parallelizing some of the computations.
+
+### When groups are pre-specified
+
+We first focus on computing the p-value when the groups are pre-specified. For this purpose, we define two additional functions, that will come in handy later.
+
 
 
 Next, we define a function to simulate from Wilks' lambda distribution:
@@ -143,11 +139,18 @@ classical_p_val <- function(S, n, CP, k, mc_iter= 1000){
   if(rp > 1){
     sip <- future.apply::future_sapply(1:mc_iter, function(i) MC_function_classical(p, rp, n), future.seed = TRUE)
     #MC simulation to approximate the p-value. Simulates W and T. Returns vector of statistic. 
-    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test stistic is smaller if it is away from null. 
+    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test statistic is smaller if it is away from null. 
   }
   return(classic_p_val)
 }
 ```
+
+We have used the `amen::mhalf()` for computing the symmetric square root of a matrix, so we import this package:
+
+```{r}
+usethis::use_package("amen")
+```
+
 
 
 Next, we demonstrate an example use of the `classical_p_val`:
@@ -271,7 +274,22 @@ dCCA <- function(n, p, rp, a, Lambda){
 }
 ```
 
-Next, we make use of `MC_function_selective` and `dCCA` to compute the p-value for test of independece, when the group $P$ is obtained from `block_diag`.
+We have used the function `matrixStats::colProds()` in the above, so we import this package:
+
+```{r}
+usethis::use_package("matrixStats")
+```
+
+
+Next, we make use of `MC_function_selective` and `dCCA` to compute the p-value for test of independence, when the group $P$ is obtained from `block_diag`.  We will use the R package `volesti` to define a polytope, `rcdd` to go between different representations of polytopes, `geometry` to get the Delaunay triangulation of the convex hull, and `SimplicialCubature` to integrate over a simplex.
+
+```{r}
+usethis::use_package("volesti")
+usethis::use_package("SimplicialCubature")
+usethis::use_package("rcdd")
+usethis::use_package("geometry")
+```
+
 
 ```{r}
 #' Function to test the independence of a data-dependent group of variables with the remaining variables

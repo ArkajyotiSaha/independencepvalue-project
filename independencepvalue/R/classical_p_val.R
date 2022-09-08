@@ -58,7 +58,7 @@ classical_p_val <- function(S, n, CP, k, mc_iter= 1000){
   if(rp > 1){
     sip <- future.apply::future_sapply(1:mc_iter, function(i) MC_function_classical(p, rp, n), future.seed = TRUE)
     #MC simulation to approximate the p-value. Simulates W and T. Returns vector of statistic. 
-    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test stistic is smaller if it is away from null. 
+    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test statistic is smaller if it is away from null. 
   }
   return(classic_p_val)
 }
