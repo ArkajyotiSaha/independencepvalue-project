@@ -428,6 +428,13 @@ usethis::use_mit_license(copyright_holder = &quot;A. Saha&quot;)</code></pre>
   tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
   eigen_tilde_F_X &lt;- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
   F_X_eigenvalues &lt;- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  while(any(F_X_eigenvalues&lt;0)){
+    tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
+    tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+    tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+    eigen_tilde_F_X &lt;- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
+    F_X_eigenvalues &lt;- eigen_tilde_F_X$values
+  }
   statistic &lt;- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
   return(statistic)
@@ -569,10 +576,16 @@ covX &lt;- cov(cbind(X_1, X_2))
   if(nrow(A)!=length(b)){stop(&quot;error: number of rows of matrix A must be equal to the numebr of rows of vector b&quot;)}
   tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
   tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-    
   tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
   eigen_tilde_F_X &lt;- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
   F_X_eigenvalues &lt;- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  while(any(F_X_eigenvalues&lt;0)){
+    tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
+    tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+    tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+    eigen_tilde_F_X &lt;- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
+    F_X_eigenvalues &lt;- eigen_tilde_F_X$values
+  }
   statistic &lt;- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
   status &lt;- all(A %*% sqrt(F_X_eigenvalues/(1+F_X_eigenvalues)) &lt;= b)
@@ -691,22 +704,25 @@ covX &lt;- cov(cbind(X_1, X_2))
     if(p2 &gt; 1){
       V_d &lt;- as.matrix(PV_d$output[ , - c(1, 2)])
       Pi &lt;- volesti::Vpolytope(V = V_d)
-      triang = try(geometry::delaunayn(Pi@V))
-      prod_res &lt;- 1
-      for(i in 1:p2){
-        prod_res &lt;- prod_res * gamma((n - i)/2)/(gamma((n - p2 -  i)/2) * gamma((p1 - i + 1)/2) * gamma((p2 - i + 1)/2))
+      triang = try(geometry::delaunayn(Pi@V), silent = TRUE)
+      if(!inherits(triang,'try-error')){
+        prod_res &lt;- 1
+        for(i in 1:p2){
+          prod_res &lt;- prod_res * gamma((n - i)/2)/(gamma((n - p2 -  i)/2) * gamma((p1 - i + 1)/2) * gamma((p2 - i + 1)/2))
+        }
+        alpha &lt;- log(pi^(p2/2) * 2^p *  prod_res)
+        <span id='f_tot'>f_tot</span> &lt;- function(x) {
+          dt &lt;- <a href='#dCCA'>dCCA</a>(n, p, p2, alpha, x)
+          return(c(dt, dt* (prod(1 - x^2) &lt; test_stat)))
+        }
+        <span id='part_int'>part_int</span> &lt;- function(i, Pi, triang, f_tot){
+          if(stats::var(round(Pi@V[triang[i,], ][,1], 5)) == 0) Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])] &lt;- Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])]*(1 - 10^(-5))
+          return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i,], ]), fDim = 2)$integral)
+        }
+        par_I_tot_list &lt;- future.apply::future_sapply(1:nrow(triang), part_int, Pi, triang, f_tot, future.seed=TRUE)
+        du &lt;- sum(par_I_tot_list[2,])/sum(par_I_tot_list[1,])
+        if(sum(par_I_tot_list[1,]) == 0){du &lt;- 0}
       }
-      alpha &lt;- log(pi^(p2/2) * 2^p *  prod_res)
-      <span id='f_tot'>f_tot</span> &lt;- function(x) {
-        dt &lt;- <a href='#dCCA'>dCCA</a>(n, p, p2, alpha, x)
-        return(c(dt, dt* (prod(1 - x^2) &lt; test_stat)))
-      }
-      <span id='part_int'>part_int</span> &lt;- function(i, Pi, triang, f_tot){
-        if(stats::var(round(Pi@V[triang[i,], ][,1], 5)) == 0) Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])] &lt;- Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])]*(1 - 10^(-5))
-        return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i,], ]), fDim = 2)$integral)
-      }
-      par_I_tot_list &lt;- future.apply::future_sapply(1:nrow(triang), part_int, Pi, triang, f_tot, future.seed=TRUE)
-      du &lt;- sum(par_I_tot_list[2,])/sum(par_I_tot_list[1,])
     }
   }
   if(du &lt;= 0 || du &gt;= 1 || p2 &gt; d0){
