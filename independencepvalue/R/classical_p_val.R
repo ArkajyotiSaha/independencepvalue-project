@@ -2,7 +2,7 @@
 
 #' Function to test the independence of two pre-specified groups of variables
 #'
-#' This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilk's lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
+#' This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilks' lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
 #' 
 #' @param S the covariance matrix of the data matrix \eqn{X}, where \eqn{X} = (\eqn{X_1} \eqn{X_2})
 #' @param n the number of data points

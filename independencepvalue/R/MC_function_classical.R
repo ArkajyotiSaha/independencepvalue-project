@@ -2,7 +2,7 @@
 
 #' Function for MC simulation for classical inference
 #'
-#' Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, simulates from Wilks' lambda distribution with appropriate parameters.
+#' Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, and \code{n}, simulates from a Wilks' lambda distribution with appropriate parameters.
 #' 
 #' @param p p_1+p_2
 #' @param rp min(p_1, p_2)

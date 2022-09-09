@@ -21,7 +21,7 @@ classical_p_val(S, n, CP, k, mc_iter = 1000)
 The p-value for the test of independence.
 }
 \description{
-This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilk's lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
+This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilks' lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
 }
 \examples{
 # Simulates a 10 x 3 X_1 from N(0, I)

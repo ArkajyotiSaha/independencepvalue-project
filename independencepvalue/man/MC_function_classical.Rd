@@ -17,6 +17,6 @@ MC_function_classical(p, rp, n)
 A sample from Wilks' lambda distribution
 }
 \description{
-Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, simulates from Wilks' lambda distribution with appropriate parameters.
+Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, and \code{n}, simulates from a Wilks' lambda distribution with appropriate parameters.
 }
 \keyword{internal}
