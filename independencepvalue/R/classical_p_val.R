@@ -15,7 +15,7 @@
 #' set.seed(1)
 #' X_1 <- matrix(rnorm(30), 10, 3)
 #'
-##' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
+#' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
 #' set.seed(2)
 #' X_2 <- matrix(rnorm(20), 10, 2)
 #'

@@ -456,6 +456,24 @@ statistic is given by</p>
 <p><span class="math display">\[
 \prod_{i=1}^r(1-\lambda_i^2)=\prod_{i=1}^r\left(1-\frac{\Psi_i}{1+\Psi_i}\right)=\frac{1}{\prod_{i=1}^r(1+\Psi_i)}.
 \]</span></p>
+<pre class="r"><code>#&#39; Sample from the distribution of canonical correlations under the null 
+#&#39; 
+#&#39; Samples from the `rp`-dimensional joint distribution of the canonical 
+#&#39; correlations between two groups of variables of size `p1` and `p2`, where 
+#&#39; `rp` is the smaller of `p1` and `p2` and `p=p1+p2`, and `n` is the sample size.
+#&#39; 
+#&#39; @param p p_1+p_2
+#&#39; @param rp min(p_1, p_2)
+#&#39; @param n sample size
+#&#39; @return A vector of length `rp` sampled from the joint distribution described
+#&#39; above.
+#&#39; @keywords internal
+<span id='sample_canoncor_under_null'>sample_canoncor_under_null</span> &lt;- function(p, rp, n) {
+  tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
+  tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+  tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+  return(eigen(tilde_F_X)$values) # eigenvalues of (inv(W)T)
+}</code></pre>
 <pre class="r"><code>#&#39; Function for MC simulation for classical inference
 #&#39;
 #&#39; Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, and \code{n}, simulates from a Wilks&#39; lambda distribution with appropriate parameters.
@@ -532,7 +550,7 @@ variables:</p>
 #&#39; set.seed(1)
 #&#39; X_1 &lt;- matrix(rnorm(30), 10, 3)
 #&#39;
-##&#39; # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
+#&#39; # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
 #&#39; set.seed(2)
 #&#39; X_2 &lt;- matrix(rnorm(20), 10, 2)
 #&#39;
@@ -824,7 +842,7 @@ integrate over a simplex.</p>
       V_d &lt;- as.matrix(PV_d$output[ , - c(1, 2)])
       Pi &lt;- volesti::Vpolytope(V = V_d)
       triang = try(geometry::delaunayn(Pi@V), silent = TRUE)
-      if(!inherits(triang,'try-error')){
+      if(!inherits(triang,&#39;try-error&#39;)){
         prod_res &lt;- 1
         for(i in 1:p2){
           prod_res &lt;- prod_res * gamma((n - i)/2)/(gamma((n - p2 -  i)/2) * gamma((p1 - i + 1)/2) * gamma((p2 - i + 1)/2))
@@ -895,6 +913,7 @@ litr::document() # &lt;-- use instead of devtools::document()</code></pre>
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;block_diag&#39;)block_diag.Rd]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;classical_p_val&#39;)classical_p_val.Rd]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;dCCA&#39;)dCCA.Rd]8;;&#39;
+## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;sample_canoncor_under_null&#39;)sample_canoncor_under_null.Rd]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;selective_p_val&#39;)selective_p_val.Rd]8;;&#39;</code></pre>
 <pre class="r"><code>#devtools::build()
 #devtools::install()

@@ -98,6 +98,27 @@ $$
 $$
 
 ```{r}
+#' Sample from the distribution of canonical correlations under the null 
+#' 
+#' Samples from the `rp`-dimensional joint distribution of the canonical 
+#' correlations between two groups of variables of size `p1` and `p2`, where 
+#' `rp` is the smaller of `p1` and `p2` and `p=p1+p2`, and `n` is the sample size.
+#' 
+#' @param p p_1+p_2
+#' @param rp min(p_1, p_2)
+#' @param n sample size
+#' @return A vector of length `rp` sampled from the joint distribution described
+#' above.
+#' @keywords internal
+sample_canoncor_under_null <- function(p, rp, n) {
+  tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
+  tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+  return(eigen(tilde_F_X)$values) # eigenvalues of (inv(W)T)
+}
+```
+
+```{r}
 #' Function for MC simulation for classical inference
 #'
 #' Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, and \code{n}, simulates from a Wilks' lambda distribution with appropriate parameters.
@@ -184,7 +205,7 @@ Next, we make use of `MC_function_classical()` for a function to test the indepe
 #' set.seed(1)
 #' X_1 <- matrix(rnorm(30), 10, 3)
 #'
-##' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
+#' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
 #' set.seed(2)
 #' X_2 <- matrix(rnorm(20), 10, 2)
 #'
