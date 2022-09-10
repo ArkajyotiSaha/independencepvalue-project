@@ -110,9 +110,16 @@ $$
 MC_function_classical <- function(p, rp, n){
   tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
   tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# Winv(T)
-  eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of Winv(T)
-  F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of Winv(T)
+  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+  eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
+  F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  while(any(F_X_eigenvalues<0)){
+    tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
+    tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+    tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+    eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
+    F_X_eigenvalues <- eigen_tilde_F_X$values
+  }
   statistic <- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
   return(statistic)
@@ -321,10 +328,16 @@ MC_function_selective <- function(p, rp, n, A, b){
   if(nrow(A)!=length(b)){stop("error: number of rows of matrix A must be equal to the numebr of rows of vector b")}
   tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
   tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-    
   tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
   eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
   F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  while(any(F_X_eigenvalues<0)){
+    tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
+    tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+    tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+    eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
+    F_X_eigenvalues <- eigen_tilde_F_X$values
+  }
   statistic <- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
   status <- all(A %*% sqrt(F_X_eigenvalues/(1+F_X_eigenvalues)) <= b)
@@ -465,22 +478,25 @@ selective_p_val <- function(S, n, CP, c, k, d0=5, mc_iter= 1000){
     if(p2 > 1){
       V_d <- as.matrix(PV_d$output[ , - c(1, 2)])
       Pi <- volesti::Vpolytope(V = V_d)
-      triang = try(geometry::delaunayn(Pi@V))
-      prod_res <- 1
-      for(i in 1:p2){
-        prod_res <- prod_res * gamma((n - i)/2)/(gamma((n - p2 -  i)/2) * gamma((p1 - i + 1)/2) * gamma((p2 - i + 1)/2))
+      triang = try(geometry::delaunayn(Pi@V), silent = TRUE)
+      if(!inherits(triang,'try-error')){
+        prod_res <- 1
+        for(i in 1:p2){
+          prod_res <- prod_res * gamma((n - i)/2)/(gamma((n - p2 -  i)/2) * gamma((p1 - i + 1)/2) * gamma((p2 - i + 1)/2))
+        }
+        alpha <- log(pi^(p2/2) * 2^p *  prod_res)
+        f_tot <- function(x) {
+          dt <- dCCA(n, p, p2, alpha, x)
+          return(c(dt, dt* (prod(1 - x^2) < test_stat)))
+        }
+        part_int <- function(i, Pi, triang, f_tot){
+          if(stats::var(round(Pi@V[triang[i,], ][,1], 5)) == 0) Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])] <- Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])]*(1 - 10^(-5))
+          return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i,], ]), fDim = 2)$integral)
+        }
+        par_I_tot_list <- future.apply::future_sapply(1:nrow(triang), part_int, Pi, triang, f_tot, future.seed=TRUE)
+        du <- sum(par_I_tot_list[2,])/sum(par_I_tot_list[1,])
+        if(sum(par_I_tot_list[1,]) == 0){du <- 0}
       }
-      alpha <- log(pi^(p2/2) * 2^p *  prod_res)
-      f_tot <- function(x) {
-        dt <- dCCA(n, p, p2, alpha, x)
-        return(c(dt, dt* (prod(1 - x^2) < test_stat)))
-      }
-      part_int <- function(i, Pi, triang, f_tot){
-        if(stats::var(round(Pi@V[triang[i,], ][,1], 5)) == 0) Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])] <- Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])]*(1 - 10^(-5))
-        return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i,], ]), fDim = 2)$integral)
-      }
-      par_I_tot_list <- future.apply::future_sapply(1:nrow(triang), part_int, Pi, triang, f_tot, future.seed=TRUE)
-      du <- sum(par_I_tot_list[2,])/sum(par_I_tot_list[1,])
     }
   }
   if(du <= 0 || du >= 1 || p2 > d0){
