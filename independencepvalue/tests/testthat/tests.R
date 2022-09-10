@@ -1,5 +1,5 @@
 # Generated from create-independencepvalue.Rmd: do not edit by hand  
-testthat::test_that("MC_function_classical works", {
+testthat::test_that("MC_function_classical() works", {
   set.seed(123)
   p <- 5
   n <- 20

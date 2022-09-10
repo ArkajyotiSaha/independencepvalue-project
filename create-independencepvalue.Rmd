@@ -110,9 +110,9 @@ $$
 MC_function_classical <- function(p, rp, n){
   tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
   tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-  eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-  F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# Winv(T)
+  eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of Winv(T)
+  F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of Winv(T)
   statistic <- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
   return(statistic)
@@ -143,7 +143,7 @@ Yes, ok good.
 Let's make a test based on the $r=1$ case:
 
 ```{r}
-testthat::test_that("MC_function_classical works", {
+testthat::test_that("MC_function_classical() works", {
   set.seed(123)
   p <- 5
   n <- 20
