@@ -404,23 +404,25 @@ usethis::use_mit_license(copyright_holder = &quot;A. Saha&quot;)</code></pre>
 {\bf X}\sim N_{n\times p}(0,{\bf I}_n,{\boldsymbol\Sigma})
 \]</span></p>
 <p>This package implements tests of whether a particular block of the
-covariance matrix is 0 or not, i.e.</p>
+covariance matrix is zero or not, i.e.</p>
 <p><span class="math display">\[
 H_0^{\mathcal P}:{\boldsymbol\Sigma}_{{\mathcal P},{\mathcal P}^c}={\bf
 0}~~\text{versus}~~H_1^{\mathcal P}:{\boldsymbol\Sigma}_{{\mathcal
-P},{\mathcal P}^c}={\bf 0}.
+P},{\mathcal P}^c}\neq{\bf 0}.
 \]</span> There are three main parts to the code in this package:</p>
 <ol style="list-style-type: decimal">
-<li><p><a href="#pre-specified">P-values for pre-specified groups:</a>
-We compute the p-value under the classical context in which <span class="math inline">\({\mathcal P}\)</span> is assumed to be
+<li><p><a href="#pre-specified">P-values in the case of pre-specified
+groups:</a> We compute the p-value under the classical context in which
+<span class="math inline">\({\mathcal P}\)</span> is assumed to be
 pre-specified (i.e., not selected based on the data used for testing).
 While this is not the focus of the package, some users may find this
 useful, and it will also be useful in the third part.</p></li>
 <li><p><a href="#partition">Partitioning variables into groups:</a> Here
 we implement a straightforward partitioning strategy based on
 thresholding the correlation matrix.</p></li>
-<li><p><a href="#selective">P-values for selected groups:</a> This is
-the heart of the package. It computes p-values in the case that <span class="math inline">\({\mathcal P}\)</span> is the result of the
+<li><p><a href="#selective">P-values in the case of selected groups:</a>
+This is the heart of the package. It computes p-values in the case that
+<span class="math inline">\({\mathcal P}\)</span> is the result of the
 partitioning implemented in part 2. Since in this case the group of
 variables is data-dependent, we write our tested hypothesis as <span class="math display">\[
 H_0^{\hat{\mathcal P}(X)}:{\boldsymbol\Sigma}_{\hat{\mathcal
@@ -456,11 +458,17 @@ statistic is given by</p>
 <p><span class="math display">\[
 \prod_{i=1}^r(1-\lambda_i^2)=\prod_{i=1}^r\left(1-\frac{\Psi_i}{1+\Psi_i}\right)=\frac{1}{\prod_{i=1}^r(1+\Psi_i)}.
 \]</span></p>
-<pre class="r"><code>#&#39; Sample from the distribution of canonical correlations under the null 
+<p>We start by defining a function that generates the random vector
+<span class="math inline">\((\Psi_1,\ldots,\Psi_r)\)</span> since we’ll
+be using this function again <a href="#selective">when sampling in the
+selective context</a>.</p>
+<pre class="r"><code>#&#39; Sample from the distribution of eigenvalues of W * inv(T)
 #&#39; 
-#&#39; Samples from the `rp`-dimensional joint distribution of the canonical 
-#&#39; correlations between two groups of variables of size `p1` and `p2`, where 
-#&#39; `rp` is the smaller of `p1` and `p2` and `p=p1+p2`, and `n` is the sample size.
+#&#39; Samples from the `rp`-dimensional joint distribution of the eigenvalues of 
+#&#39; W * inv(T), where W and T are independent Wisharts with dimensions specified 
+#&#39; in Prop 1(ii).  These are the {Psi_i}, and taking {sqrt(Psi_i/(1+Psi_i))}
+#&#39; gives a sample from the joint distirbution of the canonical correlations 
+#&#39; between two groups of variables of size `p1` and `p2` under the null.
 #&#39; 
 #&#39; @param p p_1+p_2
 #&#39; @param rp min(p_1, p_2)
@@ -468,7 +476,7 @@ statistic is given by</p>
 #&#39; @return A vector of length `rp` sampled from the joint distribution described
 #&#39; above.
 #&#39; @keywords internal
-<span id='sample_canoncor_under_null'>sample_canoncor_under_null</span> &lt;- function(p, rp, n) {
+<span id='sample_psi'>sample_psi</span> &lt;- function(p, rp, n) {
   tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
   tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
   tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
@@ -484,17 +492,9 @@ statistic is given by</p>
 #&#39; @return A sample from Wilks&#39; lambda distribution
 #&#39; @keywords internal
 <span id='MC_function_classical'>MC_function_classical</span> &lt;- function(p, rp, n){
-  tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
-  tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-  tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-  eigen_tilde_F_X &lt;- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-  F_X_eigenvalues &lt;- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
-  while(any(F_X_eigenvalues&lt;0)){
-    tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
-    tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-    tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-    eigen_tilde_F_X &lt;- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-    F_X_eigenvalues &lt;- eigen_tilde_F_X$values
+  F_X_eigenvalues &lt;- <a href='#sample_psi'>sample_psi</a>(p, rp, n) # eigenvalues of (inv(W)T)
+  while(any(F_X_eigenvalues &lt; 0)){
+    F_X_eigenvalues &lt;- <a href='#sample_psi'>sample_psi</a>(p, rp, n) # eigenvalues of (inv(W)T)
   }
   statistic &lt;- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
@@ -557,7 +557,7 @@ variables:</p>
 #&#39; # Compute the covariance matrix of X = (X_1 X_2).
 #&#39; covX &lt;- cov(cbind(X_1, X_2))
 #&#39; # tests for a difference in means between X_1 and X_2
-#&#39; <a href='#classical_p_val'>classical_p_val</a>(S=covX, n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100)
+#&#39; <a href='#classical_p_val'>classical_p_val</a>(S=covX, n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100)
 #&#39; @export 
 <span id='classical_p_val'>classical_p_val</span> &lt;- function(S, n, CP, k, mc_iter= 1000){
   p &lt;- nrow(S)
@@ -600,8 +600,6 @@ variables:</p>
 <p>We have used the <code>amen::mhalf()</code> for computing the
 symmetric square root of a matrix, so we import this package:</p>
 <pre class="r"><code>usethis::use_package(&quot;amen&quot;)</code></pre>
-<pre><code>## ✔ Adding &#39;amen&#39; to Imports field in DESCRIPTION
-## • Refer to functions with `amen::fun()`</code></pre>
 <p>Next, we demonstrate an example use of the
 <code>classical_p_val</code>:</p>
 <pre class="r"><code># Simulates a 10 x 3 \eqn{X_1} from \eqn{N(0, I)}
@@ -614,14 +612,22 @@ X_2 &lt;- matrix(rnorm(20), 10, 2)
 # Compute the covariance matrix of \eqn{X} = (\eqn{X_1} \eqn{X_2}).
 covX &lt;- cov(cbind(X_1, X_2))
 # tests for a difference in means between \eqn{X_1} and \eqn{X_2}
-<a href='#classical_p_val'>classical_p_val</a>(S=covX, n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100)</code></pre>
+<a href='#classical_p_val'>classical_p_val</a>(S=covX, n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100)</code></pre>
 <pre><code>## [1] 0.08</code></pre>
 <p>We also add a code to test the function
 <code>classical_p_val</code>:</p>
 <pre class="r"><code>testthat::test_that(&quot;classical_p_val works&quot;, {
   set.seed(1)
   X &lt;- matrix(rnorm(50), 10, 5)
-  testthat::expect_equal(<a href='#classical_p_val'>classical_p_val</a>(S=cov(X), n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100), 0.83)
+  testthat::expect_equal(
+    <a href='#classical_p_val'>classical_p_val</a>(S=cov(X), n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100),
+    0.83)
+  set.seed(1)
+  X &lt;- matrix(rnorm(50), 10, 5)
+  # testing group 2 should give identical results:
+  testthat::expect_equal(
+    <a href='#classical_p_val'>classical_p_val</a>(S=cov(X), n=10, CP=rep(1:2, times=c(3, 2)), k=2, mc_iter=100),
+    0.83)
 })</code></pre>
 <pre><code>## Test passed 😀</code></pre>
 </div>
@@ -685,17 +691,9 @@ covariance matrix.</p>
 #&#39; @keywords internal
 <span id='MC_function_selective'>MC_function_selective</span> &lt;- function(p, rp, n, A, b){
   if(nrow(A)!=length(b)){stop(&quot;error: number of rows of matrix A must be equal to the numebr of rows of vector b&quot;)}
-  tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
-  tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-  tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-  eigen_tilde_F_X &lt;- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-  F_X_eigenvalues &lt;- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  F_X_eigenvalues &lt;- <a href='#sample_psi'>sample_psi</a>(p, rp, n) # eigenvalues of (inv(W)T)
   while(any(F_X_eigenvalues&lt;0)){
-    tilde_W_X &lt;- stats::rWishart(1, p - rp, diag(rp))#simulate W
-    tilde_T_X &lt;- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-    tilde_F_X &lt;- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-    eigen_tilde_F_X &lt;- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-    F_X_eigenvalues &lt;- eigen_tilde_F_X$values
+    F_X_eigenvalues &lt;- <a href='#sample_psi'>sample_psi</a>(p, rp, n) # eigenvalues of (inv(W)T)
   }
   statistic &lt;- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
@@ -727,8 +725,6 @@ approximation of the p-value:</p>
 <p>We have used the function <code>matrixStats::colProds()</code> in the
 above, so we import this package:</p>
 <pre class="r"><code>usethis::use_package(&quot;matrixStats&quot;)</code></pre>
-<pre><code>## ✔ Adding &#39;matrixStats&#39; to Imports field in DESCRIPTION
-## • Refer to functions with `matrixStats::fun()`</code></pre>
 <p>Next, we make use of <code>MC_function_selective</code> and
 <code>dCCA</code> to compute the p-value for test of independence, when
 the group <span class="math inline">\(P\)</span> is obtained from
@@ -737,18 +733,10 @@ to define a polytope, <code>rcdd</code> to go between different
 representations of polytopes, <code>geometry</code> to get the Delaunay
 triangulation of the convex hull, and <code>SimplicialCubature</code> to
 integrate over a simplex.</p>
-<pre class="r"><code>usethis::use_package(&quot;volesti&quot;)</code></pre>
-<pre><code>## ✔ Adding &#39;volesti&#39; to Imports field in DESCRIPTION
-## • Refer to functions with `volesti::fun()`</code></pre>
-<pre class="r"><code>usethis::use_package(&quot;SimplicialCubature&quot;)</code></pre>
-<pre><code>## ✔ Adding &#39;SimplicialCubature&#39; to Imports field in DESCRIPTION
-## • Refer to functions with `SimplicialCubature::fun()`</code></pre>
-<pre class="r"><code>usethis::use_package(&quot;rcdd&quot;)</code></pre>
-<pre><code>## ✔ Adding &#39;rcdd&#39; to Imports field in DESCRIPTION
-## • Refer to functions with `rcdd::fun()`</code></pre>
-<pre class="r"><code>usethis::use_package(&quot;geometry&quot;)</code></pre>
-<pre><code>## ✔ Adding &#39;geometry&#39; to Imports field in DESCRIPTION
-## • Refer to functions with `geometry::fun()`</code></pre>
+<pre class="r"><code>usethis::use_package(&quot;volesti&quot;)
+usethis::use_package(&quot;SimplicialCubature&quot;)
+usethis::use_package(&quot;rcdd&quot;)
+usethis::use_package(&quot;geometry&quot;)</code></pre>
 <pre class="r"><code>#&#39; Function to test the independence of a data-dependent group of variables with the remaining variables
 #&#39;
 #&#39; This tests the null hypothesis of independence between two groups of Gaussian variables, where the groups are obtained via thresholding with \code{block_diag}.
@@ -905,15 +893,15 @@ the package. It may also be a good idea to check the package from within
 this file.</p>
 <pre class="r"><code>rm(list = ls())
 litr::document() # &lt;-- use instead of devtools::document()</code></pre>
-<pre><code>## ℹ Updating independencepvalue documentation
-## ℹ Loading independencepvalue
-## Writing &#39;]8;;file:///Users/jbien/Dropbox/daniela/arka/Rpackage/independencepvalue-project/independencepvalue/NAMESPACENAMESPACE]8;;&#39;
+<pre><code>## ℹ Updating independencepvalue documentation</code></pre>
+<pre><code>## ℹ Loading independencepvalue
+## Writing &#39;]8;;file:///Users/jacobbien/Dropbox/daniela/arka/Rpackage/independencepvalue-project/independencepvalue/NAMESPACENAMESPACE]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;MC_function_classical&#39;)MC_function_classical.Rd]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;MC_function_selective&#39;)MC_function_selective.Rd]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;block_diag&#39;)block_diag.Rd]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;classical_p_val&#39;)classical_p_val.Rd]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;dCCA&#39;)dCCA.Rd]8;;&#39;
-## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;sample_canoncor_under_null&#39;)sample_canoncor_under_null.Rd]8;;&#39;
+## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;sample_psi&#39;)sample_psi.Rd]8;;&#39;
 ## Writing &#39;]8;;ide:run:pkgload::dev_help(&#39;selective_p_val&#39;)selective_p_val.Rd]8;;&#39;</code></pre>
 <pre class="r"><code>#devtools::build()
 #devtools::install()

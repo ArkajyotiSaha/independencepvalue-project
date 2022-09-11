@@ -22,7 +22,7 @@
 #' # Compute the covariance matrix of X = (X_1 X_2).
 #' covX <- cov(cbind(X_1, X_2))
 #' # tests for a difference in means between X_1 and X_2
-#' classical_p_val(S=covX, n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100)
+#' classical_p_val(S=covX, n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100)
 #' @export 
 classical_p_val <- function(S, n, CP, k, mc_iter= 1000){
   p <- nrow(S)

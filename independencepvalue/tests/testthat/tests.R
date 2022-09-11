@@ -16,7 +16,15 @@ testthat::test_that("MC_function_classical() works", {
 testthat::test_that("classical_p_val works", {
   set.seed(1)
   X <- matrix(rnorm(50), 10, 5)
-  testthat::expect_equal(classical_p_val(S=cov(X), n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100), 0.83)
+  testthat::expect_equal(
+    classical_p_val(S=cov(X), n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100),
+    0.83)
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  # testing group 2 should give identical results:
+  testthat::expect_equal(
+    classical_p_val(S=cov(X), n=10, CP=rep(1:2, times=c(3, 2)), k=2, mc_iter=100),
+    0.83)
 })
 
 testthat::test_that("block_diag works", {
