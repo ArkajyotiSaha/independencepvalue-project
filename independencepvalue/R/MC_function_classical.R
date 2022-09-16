@@ -1,13 +1,13 @@
 # Generated from create-independencepvalue.Rmd: do not edit by hand
 
-#' Function for MC simulation for classical inference
+#' Function for Monte Carlo simulation for classical inference
 #'
-#' Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, and \code{n}, simulates from a Wilks' lambda distribution with appropriate parameters.
+#' Samples from the joint distribution of the canonical correlations between two groups of independent Gaussian variables of size \eqn{p_1} and \eqn{p_2} using \code{sample_psi()}, and then computes the corresponding test statistic, which follows a Wilks' lambda distribution. 
 #' 
-#' @param p p_1+p_2
-#' @param rp min(p_1, p_2)
+#' @param p \eqn{p_1+p_2}
+#' @param rp \eqn{min(p_1, p_2)}
 #' @param n sample size
-#' @return A sample from Wilks' lambda distribution
+#' @return A sample from Wilks' lambda distribution.
 #' @keywords internal
 MC_function_classical <- function(p, rp, n){
   F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)

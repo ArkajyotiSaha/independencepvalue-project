@@ -2,10 +2,10 @@
 
 #' Function to obtain block diagonal structure through thresholding
 #'
-#' Given the correlation matrix matrix of a data matrix \eqn{X}, this function discovrs the block-diagonal structure by thresholding the absolute values of the entries of the correlation matrix at c. We create an adjacency matrix with the elements being 1 iff the corresponding member of the correlation matrix has an absolute value greater than or equal to \eqn{c}. This is equivalent to performing a single linkage hierarcical clustering on the variables, with the distance matrix given by \eqn{1 - |R|} and truncating the tree at \eqn{1-c}.
+#' Given a correlation matrix \eqn{R}, this function discovers the block-diagonal structure by thresholding the absolute values of the entries of the correlation matrix at \eqn{c}. We create an adjacency matrix with the elements being 1 if and only if the corresponding member of the correlation matrix has an absolute value \eqn{\ge c}. This is equivalent to performing a single linkage hierarchical clustering on the variables, with the distance matrix given by \eqn{1 - |R|} and truncating the tree at \eqn{1-c}.
 #' 
-#' @param R the \eqn{p \time p} correlation matrix of the data
-#' @param c the threshold
+#' @param R a \eqn{p \times p} correlation matrix
+#' @param c a threshold
 #' @return A \eqn{p} length integer vector whose \eqn{i^{th}} element denotes the group \eqn{i^{th}} variable belongs to.
 #' @examples
 #' # Simulates a 10 x 5 X from N(0, I)

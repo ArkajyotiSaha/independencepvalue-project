@@ -1,17 +1,17 @@
 # Generated from create-independencepvalue.Rmd: do not edit by hand
 
-#' Sample from the distribution of eigenvalues of W * inv(T)
+#' Sample from the distribution of eigenvalues of \eqn{WT^{-1}}
 #' 
-#' Samples from the `rp`-dimensional joint distribution of the eigenvalues of 
-#' W * inv(T), where W and T are independent Wisharts with dimensions specified 
-#' in Prop 1(ii).  These are the {Psi_i}, and taking {sqrt(Psi_i/(1+Psi_i))}
-#' gives a sample from the joint distirbution of the canonical correlations 
-#' between two groups of variables of size `p1` and `p2` under the null.
+#' Samples from the \code{rp}-dimensional joint distribution of the eigenvalues of 
+#' \eqn{WT^{-1}}, where \eqn{W} and \eqn{T} are independent Wisharts with dimensions specified 
+#' in Prop 1(ii).  These are the \eqn{\Psi_i}, and taking \eqn{\sqrt{(\Psi_i/(1+\Psi_i))}}
+#' gives a sample from the joint distribution of the canonical correlations 
+#' between two groups of variables of size \eqn{p_1} and \eqn{p_2} under the null.
 #' 
-#' @param p p_1+p_2
-#' @param rp min(p_1, p_2)
+#' @param p \eqn{p_1+p_2}
+#' @param rp \eqn{min(p_1, p_2)}
 #' @param n sample size
-#' @return A vector of length `rp` sampled from the joint distribution described
+#' @return A vector of length \code{rp} sampled from the joint distribution described
 #' above.
 #' @keywords internal
 sample_psi <- function(p, rp, n) {

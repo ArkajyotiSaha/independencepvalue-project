@@ -1,26 +1,26 @@
 # Generated from create-independencepvalue.Rmd: do not edit by hand
 
-#' Function for MC simulation for selective inference
+#' Function for Monte Carlo simulation for selective inference
 #'
-#' For a given group of variables \eqn{P}, simulates from the joint distribution of the canonical correlations and check if \eqn{P} is recovered by applying `block_diag` on the perturbed covariance matrix. This condition can be characterized as the vector of canonical correlations \eqn{\Lambda} belonging in a convex polytope \eqn{A\Lambda \leq b}, where the matrix \eqn{A} and the vector \eqn{b} are functions of the threshold \eqn{c} and the sample covariance matrix.
+#' Samples from the joint distirbution of the canonical correlations between two groups of independent Gaussian variables of size \eqn{p_1} and \eqn{p_2} using \code{sample_psi()}, and then computes the corresponding test statistic, which follows a Wilks' lambda distribution. Given a matrix \code{L} with \code{rp} columns, and a vector of length equal to the number of rows in \code{L}, checks if the sampled vector \eqn{\lambda} satisfies \eqn{\lambda : L\lambda \le g}
 #' 
-#' @param p p_1+p_2
-#' @param rp min(p_1, p_2)
+#' @param p \eqn{p_1 + p_2}
+#' @param rp \eqn{min(p_1, p_2)}
 #' @param n sample size
-#' @param A matrix with \code{rp} rows
-#' @param b numeric vector
+#' @param L a matrix with \code{rp} columns
+#' @param g a vector of length equal to the number of rows in \code{L}
 #' @return
-#' \item{statistic}{Test statistic corresponding to simulated \eqn{\Lambda}.}
-#' \item{status}{Logical vector if the simulated \eqn{\Lambda} satisfies \eqn{A\Lambda \leq b}.}
+#' \item{statistic}{Test statistic corresponding to simulated \eqn{\lambda}.}
+#' \item{status}{A logical vector indicating if the simulated \eqn{\lambda} satisfies \eqn{L\lambda \leq g}.}
 #' @keywords internal
-MC_function_selective <- function(p, rp, n, A, b){
-  if(nrow(A)!=length(b)){stop("error: number of rows of matrix A must be equal to the numebr of rows of vector b")}
+MC_function_selective <- function(p, rp, n, L, g){
+  if(nrow(L)!=length(g)){stop("error: number of rows of matrix L must be equal to the number of rows of vector g")}
   F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
   while(any(F_X_eigenvalues<0)){
     F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
   }
   statistic <- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
-  status <- all(A %*% sqrt(F_X_eigenvalues/(1+F_X_eigenvalues)) <= b)
+  status <- all(L %*% sqrt(F_X_eigenvalues/(1+F_X_eigenvalues)) <= g)
   return(list(statistic=statistic, status=status))
 }

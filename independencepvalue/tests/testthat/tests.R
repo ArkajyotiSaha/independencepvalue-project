@@ -1,4 +1,18 @@
 # Generated from create-independencepvalue.Rmd: do not edit by hand  
+testthat::test_that("test_stat_CCA() works", {
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  testthat::expect_equal(
+    round(test_stat_CCA(S=cov(X), CP=rep(1:2, times=c(3, 2)), k=1)$statistic, 2),
+    0.62)
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  # testing group 2 should give identical results:
+  testthat::expect_equal(
+    round(test_stat_CCA(S=cov(X), CP=rep(1:2, times=c(3, 2)), k=2)$statistic, 2),
+    0.62)
+})
+
 testthat::test_that("MC_function_classical() works", {
   set.seed(123)
   p <- 5
@@ -13,7 +27,7 @@ testthat::test_that("MC_function_classical() works", {
   testthat::expect_true( all(abs(qw - qb) < 0.01) )
 })
 
-testthat::test_that("classical_p_val works", {
+testthat::test_that("classical_p_val() works", {
   set.seed(1)
   X <- matrix(rnorm(50), 10, 5)
   testthat::expect_equal(
@@ -27,13 +41,13 @@ testthat::test_that("classical_p_val works", {
     0.83)
 })
 
-testthat::test_that("block_diag works", {
+testthat::test_that("block_diag() works", {
   set.seed(1)
   X <- matrix(rnorm(50), 10, 5)
   testthat::expect_equal(length(unique(block_diag(cor(X), c=0.5))), 3)
 })
 
-testthat::test_that("selective_p_val works", {
+testthat::test_that("selective_p_val() works", {
   set.seed(1)
   X <- matrix(rnorm(50), 10, 5)
   corX <- cor(cbind(X))
