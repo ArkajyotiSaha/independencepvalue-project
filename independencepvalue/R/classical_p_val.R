@@ -2,7 +2,7 @@
 
 #' Function to test the independence of two pre-specified groups of variables
 #'
-#' This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilk's lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
+#' This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilks' lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
 #' 
 #' @param S the covariance matrix of the data matrix \eqn{X}, where \eqn{X} = (\eqn{X_1} \eqn{X_2})
 #' @param n the number of data points
@@ -15,14 +15,14 @@
 #' set.seed(1)
 #' X_1 <- matrix(rnorm(30), 10, 3)
 #'
-##' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
+#' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
 #' set.seed(2)
 #' X_2 <- matrix(rnorm(20), 10, 2)
 #'
 #' # Compute the covariance matrix of X = (X_1 X_2).
 #' covX <- cov(cbind(X_1, X_2))
 #' # tests for a difference in means between X_1 and X_2
-#' classical_p_val(S=covX, n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100)
+#' classical_p_val(S=covX, n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100)
 #' @export 
 classical_p_val <- function(S, n, CP, k, mc_iter= 1000){
   p <- nrow(S)
@@ -58,7 +58,7 @@ classical_p_val <- function(S, n, CP, k, mc_iter= 1000){
   if(rp > 1){
     sip <- future.apply::future_sapply(1:mc_iter, function(i) MC_function_classical(p, rp, n), future.seed = TRUE)
     #MC simulation to approximate the p-value. Simulates W and T. Returns vector of statistic. 
-    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test stistic is smaller if it is away from null. 
+    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test statistic is smaller if it is away from null. 
   }
   return(classic_p_val)
 }

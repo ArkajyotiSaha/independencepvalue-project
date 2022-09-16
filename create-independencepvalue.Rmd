@@ -8,6 +8,14 @@ params:
   package_parent_dir: "." # <-- relative to this file's location
 ---
 
+\newcommand{\bX}{{\bf X}}
+\newcommand{\bI}{{\bf I}}
+\newcommand{\bW}{{\bf W}}
+\newcommand{\bT}{{\bf T}}
+\newcommand{\bSigma}{{\boldsymbol\Sigma}}
+\newcommand{\P}{{\mathcal P}}
+\newcommand{\hP}{\hat{\mathcal P}}
+
 <!-- This Rmd file contains all the code needed to define an R package.  Press "Knit" in RStudio or more generally run `rmarkdown::render("create-independencepvalue.Rmd")` to generate the R package.  Remember that when you want to modify anything about the R package, you should modify this document rather than the package that is outputted.
 -->
 
@@ -23,8 +31,8 @@ usethis::create_package(
   fields = list(
     Package = params$package_name,
     Version = "0.0.1",
-    Title = "independencepvalue: Computes the p-value of testing independence between groups of Gaussian variables",
-    Description = "Discovers block diagonal structure from a given covariance matrix through thresholding and then tests whether a block is independent with the remaining variables.",
+    Title = "Testing independence between groups of Gaussian variables",
+    Description = "Discovers block diagonal structure from a given covariance matrix through thresholding correlations and then tests whether a block is independent from the remaining variables in a fashion that accounts for the selection of the blocks.  A function for testing in the classical setting where these groups are predetermined is also implemented.",
     `Authors@R` = c(person(
       given = "Arkajyoti",
       family = "Saha",
@@ -36,34 +44,88 @@ usethis::create_package(
 usethis::use_mit_license(copyright_holder = "A. Saha")
 ```
 
+## Introduction
+
+Consider
+
+$$
+\bX\sim N_{n\times p}(0,\bI_n,\bSigma)
+$$
+
+This package implements tests of whether a particular block of the covariance matrix is zero or not, i.e.
+
+$$
+H_0^\P:\bSigma_{\P,\P^c}={\bf 0}~~\text{versus}~~H_1^\P:\bSigma_{\P,\P^c}\neq{\bf 0}.
+$$
+There are three main parts to the code in this package:
+
+1. [P-values in the case of pre-specified groups:](#pre-specified) We compute the p-value under the classical context in which $\P$ is assumed to be pre-specified (i.e., not selected based on the data used for testing).  While this is not the focus of the package, some users may find this useful, and it will also be useful in the third part.
+
+2. [Partitioning variables into groups:](#partition) Here we implement a straightforward partitioning strategy based on thresholding the correlation matrix.
+
+3. [P-values in the case of selected groups:](#selective) This is the heart of the package.  It computes p-values in the case that $\P$ is the result of the partitioning implemented in part 2.   Since in this case the group of variables is data-dependent, we write our tested hypothesis as 
+$$
+H_0^{\hP(X)}:\bSigma_{\hP(X),\hP(X)^c}={\bf 0}~~\text{versus}~~H_1^{\hP(X)}:\bSigma_{\hP(X),\hP(X)^c}={\bf 0}.
+$$
 
 ## Functions in the package
 
-### When groups are pre-specified
-
-We first focus on evaluating the p-value when the groups are pre-specified. For this purpose, we define two additional functions, that will come in handy later.
-
 First, we import some required packages:
 
-```{r}
+```{r, message=FALSE}
 usethis::use_package("stats")
-usethis::use_package("amen")
-usethis::use_package("matrixStats")
-usethis::use_package("volesti")
-usethis::use_package("matrixStats")
-usethis::use_package("SimplicialCubature")
 usethis::use_package("future.apply")
-usethis::use_package("geometry")
-usethis::use_package("rcdd")
 ```
 
+We use `future.apply` for parallelizing some of the computations.
 
-Next, we define a function to simulate from Wilks' lambda distribution:
+### When groups are pre-specified {#pre-specified}
+
+We first focus on computing the p-value when the group $\P$ is pre-specified.
+
+For this purpose, we will be sampling from the distribution of the test statistic under the null.  This is given by a Wilks' lambda distribution, and we can use Proposition 1(ii) of the paper to simulate from it as follows.
+
+Let $r:=\min\{|\P|,|\P^c|\}$.  We sample two independent Wishart matrices,
+
+$$
+\bW\sim\text{Wishart}(\bI_{r},p-r)\text{ and }\bT\sim\text{Wishart}(\bI_{r},n-1-p+r),
+$$
+
+then compute the eigenvalues of $\bW\bT^{-1}$, which we call $(\Psi_1,\ldots,\Psi_r)$.  Then the test statistic is given by
+
+$$
+\prod_{i=1}^r(1-\lambda_i^2)=\prod_{i=1}^r\left(1-\frac{\Psi_i}{1+\Psi_i}\right)=\frac{1}{\prod_{i=1}^r(1+\Psi_i)}.
+$$
+
+We start by defining a function that generates the random vector $(\Psi_1,\ldots,\Psi_r)$ since we'll be using this function again [when sampling in the selective context](#selective).
+
+```{r}
+#' Sample from the distribution of eigenvalues of W * inv(T)
+#' 
+#' Samples from the `rp`-dimensional joint distribution of the eigenvalues of 
+#' W * inv(T), where W and T are independent Wisharts with dimensions specified 
+#' in Prop 1(ii).  These are the {Psi_i}, and taking {sqrt(Psi_i/(1+Psi_i))}
+#' gives a sample from the joint distirbution of the canonical correlations 
+#' between two groups of variables of size `p1` and `p2` under the null.
+#' 
+#' @param p p_1+p_2
+#' @param rp min(p_1, p_2)
+#' @param n sample size
+#' @return A vector of length `rp` sampled from the joint distribution described
+#' above.
+#' @keywords internal
+sample_psi <- function(p, rp, n) {
+  tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
+  tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
+  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
+  return(eigen(tilde_F_X)$values) # eigenvalues of (inv(W)T)
+}
+```
 
 ```{r}
 #' Function for MC simulation for classical inference
 #'
-#' Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, simulates from Wilks' lambda distribution with appropriate parameters.
+#' Given \eqn{p = p_1 + p2}, and \code{rp} = \eqn{min(p_1, p_2)}, and \code{n}, simulates from a Wilks' lambda distribution with appropriate parameters.
 #' 
 #' @param p p_1+p_2
 #' @param rp min(p_1, p_2)
@@ -71,17 +133,9 @@ Next, we define a function to simulate from Wilks' lambda distribution:
 #' @return A sample from Wilks' lambda distribution
 #' @keywords internal
 MC_function_classical <- function(p, rp, n){
-  tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
-  tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-  eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-  F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
-  while(any(F_X_eigenvalues<0)){
-    tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
-    tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-    tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-    eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-    F_X_eigenvalues <- eigen_tilde_F_X$values
+  F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
+  while(any(F_X_eigenvalues < 0)){
+    F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
   }
   statistic <- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
@@ -89,12 +143,51 @@ MC_function_classical <- function(p, rp, n){
 }
 ```
 
+As noted in Prop 1(iii) of the paper, when $r=1$ this can be done by sampling $\lambda_1^2\sim\text{Beta}([p-1]/2, [n-p]/2)$ and then computing $(1-\lambda_1^2)$. Let's do a visual check of `MC_function_classical()` by making sure it matches up with this other approach in the $r=1$ case.
 
-Next, we make use of `MC_function_classical` for a function to test the independence of two pre-specified groups of variables:
+```{r}
+set.seed(123)
+p <- 5
+n <- 20
+nsim <- 1e4
+from_wisharts <- sapply(1:nsim,
+                        function(i) MC_function_classical(p = p, rp = 1, n = n))
+from_beta <- 1 - rbeta(nsim, (p - 1) / 2, (n - p) / 2)
+```
+
+Do the quantiles from the two approaches match?
+
+```{r}
+qqplot(from_wisharts, from_beta)
+abline(0, 1)
+```
+
+Yes, ok good.
+
+Let's make a test based on the $r=1$ case:
+
+```{r}
+testthat::test_that("MC_function_classical() works", {
+  set.seed(123)
+  p <- 5
+  n <- 20
+  nsim <- 1e4
+  from_wisharts <- sapply(1:nsim,
+                          function(i) MC_function_classical(p = p, rp = 1, n = n))
+  from_beta <- 1 - rbeta(nsim, (p - 1) / 2, (n - p) / 2)
+  probs <- seq(0.05, 0.95, length = 10)
+  qw <- quantile(from_wisharts,probs = probs)
+  qb <- quantile(from_beta,probs = probs)
+  testthat::expect_true( all(abs(qw - qb) < 0.01) )
+})
+```
+
+Next, we make use of `MC_function_classical()` for a function to test the independence of two pre-specified groups of variables:
+
 ```{r}
 #' Function to test the independence of two pre-specified groups of variables
 #'
-#' This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilk's lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
+#' This tests the null hypothesis of independence between two pre-specified groups of Gaussian variables. This function approximates the p-value corresponding to the Wilks' lambda statistics with Monte Carlo simulation with \code{mc_iter} iterations.
 #' 
 #' @param S the covariance matrix of the data matrix \eqn{X}, where \eqn{X} = (\eqn{X_1} \eqn{X_2})
 #' @param n the number of data points
@@ -107,14 +200,14 @@ Next, we make use of `MC_function_classical` for a function to test the independ
 #' set.seed(1)
 #' X_1 <- matrix(rnorm(30), 10, 3)
 #'
-##' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
+#' # Simulates a 10 x 2 X_2 from N(0, I) independently of X_1
 #' set.seed(2)
 #' X_2 <- matrix(rnorm(20), 10, 2)
 #'
 #' # Compute the covariance matrix of X = (X_1 X_2).
 #' covX <- cov(cbind(X_1, X_2))
 #' # tests for a difference in means between X_1 and X_2
-#' classical_p_val(S=covX, n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100)
+#' classical_p_val(S=covX, n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100)
 #' @export 
 classical_p_val <- function(S, n, CP, k, mc_iter= 1000){
   p <- nrow(S)
@@ -150,11 +243,18 @@ classical_p_val <- function(S, n, CP, k, mc_iter= 1000){
   if(rp > 1){
     sip <- future.apply::future_sapply(1:mc_iter, function(i) MC_function_classical(p, rp, n), future.seed = TRUE)
     #MC simulation to approximate the p-value. Simulates W and T. Returns vector of statistic. 
-    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test stistic is smaller if it is away from null. 
+    classic_p_val <- mean(test_stat >= sip)#computes p-value. The test statistic is smaller if it is away from null. 
   }
   return(classic_p_val)
 }
 ```
+
+We have used the `amen::mhalf()` for computing the symmetric square root of a matrix, so we import this package:
+
+```{r, message=FALSE}
+usethis::use_package("amen")
+```
+
 
 
 Next, we demonstrate an example use of the `classical_p_val`:
@@ -170,7 +270,7 @@ X_2 <- matrix(rnorm(20), 10, 2)
 # Compute the covariance matrix of \eqn{X} = (\eqn{X_1} \eqn{X_2}).
 covX <- cov(cbind(X_1, X_2))
 # tests for a difference in means between \eqn{X_1} and \eqn{X_2}
-classical_p_val(S=covX, n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100)
+classical_p_val(S=covX, n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100)
 ```
 
 We also add a code to test the function `classical_p_val`:
@@ -179,11 +279,19 @@ We also add a code to test the function `classical_p_val`:
 testthat::test_that("classical_p_val works", {
   set.seed(1)
   X <- matrix(rnorm(50), 10, 5)
-  testthat::expect_equal(classical_p_val(S=cov(X), n=10, CP=c(rep(1, each = 3),rep(2, each = 2)), k=1, mc_iter=100), 0.83)
+  testthat::expect_equal(
+    classical_p_val(S=cov(X), n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100),
+    0.83)
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  # testing group 2 should give identical results:
+  testthat::expect_equal(
+    classical_p_val(S=cov(X), n=10, CP=rep(1:2, times=c(3, 2)), k=2, mc_iter=100),
+    0.83)
 })
 ```
 
-### How we partition variables into groups
+### How we partition variables into groups {#partition}
 
 Given a correlation matrix and a threshold $c$ with $0 < c< 1$, we obtain the block diagonal structure by thresholding the absolute values of the entries of the correlation matrix at c. 
 
@@ -222,7 +330,7 @@ testthat::test_that("block_diag works", {
 })
 ```
 
-### When groups are selected with `block_diag`
+### When groups are selected with `block_diag` {#selective}
 
 We will be using selective inference to obtain the p-value for testing the hypothesis of independence of a selected group of varirables $P$ (obtained using `block_diag`) with the remaining variables.  First, we define a function to simulate from the joint distribution of the canonical correlations and check if $P$ is recovered by applying `block_diag` on the perturbed covariance matrix. 
 
@@ -242,17 +350,9 @@ We will be using selective inference to obtain the p-value for testing the hypot
 #' @keywords internal
 MC_function_selective <- function(p, rp, n, A, b){
   if(nrow(A)!=length(b)){stop("error: number of rows of matrix A must be equal to the numebr of rows of vector b")}
-  tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
-  tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-  tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-  eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-  F_X_eigenvalues <- eigen_tilde_F_X$values # eigenvalues of (inv(W)T)
+  F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
   while(any(F_X_eigenvalues<0)){
-    tilde_W_X <- stats::rWishart(1, p - rp, diag(rp))#simulate W
-    tilde_T_X <- stats::rWishart(1, n - (p - rp) - 1, diag(rp))#simulate T
-    tilde_F_X <- tilde_W_X[,,1] %*% solve(tilde_T_X[,,1])# inv(W)T
-    eigen_tilde_F_X <- eigen(tilde_F_X) # eigen decomposition of (inv(W)T)
-    F_X_eigenvalues <- eigen_tilde_F_X$values
+    F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
   }
   statistic <- 1/prod(1+F_X_eigenvalues)
   # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
@@ -284,7 +384,22 @@ dCCA <- function(n, p, rp, a, Lambda){
 }
 ```
 
-Next, we make use of `MC_function_selective` and `dCCA` to compute the p-value for test of independece, when the group $P$ is obtained from `block_diag`.
+We have used the function `matrixStats::colProds()` in the above, so we import this package:
+
+```{r, message=FALSE}
+usethis::use_package("matrixStats")
+```
+
+
+Next, we make use of `MC_function_selective` and `dCCA` to compute the p-value for test of independence, when the group $P$ is obtained from `block_diag`.  We will use the R package `volesti` to define a polytope, `rcdd` to go between different representations of polytopes, `geometry` to get the Delaunay triangulation of the convex hull, and `SimplicialCubature` to integrate over a simplex.
+
+```{r, message=FALSE}
+usethis::use_package("volesti")
+usethis::use_package("SimplicialCubature")
+usethis::use_package("rcdd")
+usethis::use_package("geometry")
+```
+
 
 ```{r}
 #' Function to test the independence of a data-dependent group of variables with the remaining variables

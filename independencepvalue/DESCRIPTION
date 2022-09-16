@@ -1,6 +1,5 @@
 Package: independencepvalue
-Title: independencepvalue: Computes the p-value of testing independence
-    between groups of Gaussian variables
+Title: Testing independence between groups of Gaussian variables
 Version: 0.0.1
 Authors@R: c(
     person("Arkajyoti", "Saha", , "arkajyotisaha93@gmail.com", role = c("aut", "cre")),
@@ -8,8 +7,11 @@ Authors@R: c(
     person("Jacob", "Bien", , "jbien@usc.edu", role = "aut")
   )
 Description: Discovers block diagonal structure from a given covariance
-    matrix through thresholding and then tests whether a block is
-    independent with the remaining variables.
+    matrix through thresholding correlations and then tests whether a
+    block is independent from the remaining variables in a fashion that
+    accounts for the selection of the blocks.  A function for testing in
+    the classical setting where these groups are predetermined is also
+    implemented.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -27,4 +29,4 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 LitrVersionUsed: 0.0.3
-LitrId: 42ced965bd165bd7171d10e2286704ed
+LitrId: 072c982db99564951dca6ce15cfff4cd
