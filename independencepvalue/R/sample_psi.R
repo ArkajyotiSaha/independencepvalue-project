@@ -1,6 +1,6 @@
 # Generated from create-independencepvalue.Rmd: do not edit by hand
 
-#' Sample from the distribution of eigenvalues of \eqn{WT^{-1}}
+#' Sample from the distribution of eigenvalues of W * inv(T)
 #' 
 #' Samples from the \code{rp}-dimensional joint distribution of the eigenvalues of 
 #' \eqn{WT^{-1}}, where \eqn{W} and \eqn{T} are independent Wisharts with dimensions specified 

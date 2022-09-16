@@ -2,7 +2,7 @@
 % Please edit documentation in create-independencepvalue.Rmd.
 \name{sample_psi}
 \alias{sample_psi}
-\title{Sample from the distribution of eigenvalues of \eqn{WT^{-1}}}
+\title{Sample from the distribution of eigenvalues of W * inv(T)}
 \usage{
 sample_psi(p, rp, n)
 }

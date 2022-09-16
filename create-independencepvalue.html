@@ -491,7 +491,7 @@ usethis::use_package(&quot;future.apply&quot;)</code></pre>
 \prod_{i=1}^r(1-\lambda_i^2)=\prod_{i=1}^r\left(1-\frac{\Psi_i}{1+\Psi_i}\right)=\frac{1}{\prod_{i=1}^r(1+\Psi_i)}.
 \]</span></p>
 <p>We start by defining a function that generates the random vector <span class="math inline">\((\Psi_1,\ldots,\Psi_r)\)</span> since we’ll be using this function again <a href="#selective">when sampling in the selective context</a>.</p>
-<pre class="r"><code>#' Sample from the distribution of eigenvalues of \eqn{WT^{-1}}
+<pre class="r"><code>#' Sample from the distribution of eigenvalues of W * inv(T)
 #' 
 #' Samples from the \code{rp}-dimensional joint distribution of the eigenvalues of 
 #' \eqn{WT^{-1}}, where \eqn{W} and \eqn{T} are independent Wisharts with dimensions specified 
