@@ -2,7 +2,7 @@
 
 #' Function for Monte Carlo simulation for selective inference
 #'
-#' Samples from the joint distirbution of the canonical correlations between two groups of independent Gaussian variables of size \eqn{p_1} and \eqn{p_2} using \code{sample_psi()}, and then computes the corresponding test statistic, which follows a Wilks' lambda distribution. Given a matrix \code{L} with \code{rp} columns, and a vector of length equal to the number of rows in \code{L}, checks if the sampled vector \eqn{\lambda} satisfies \eqn{\lambda : L\lambda \le g}
+#' Samples from the joint distribution of the canonical correlations between two groups of independent Gaussian variables of size \eqn{p_1} and \eqn{p_2} using \code{sample_psi()}, and then computes the corresponding test statistic, which follows a Wilks' lambda distribution. Given a matrix \code{L} with \code{rp} columns, and a vector of length equal to the number of rows in \code{L}, checks if the sampled vector \eqn{\lambda} satisfies \eqn{\lambda : L\lambda \le g}
 #' 
 #' @param p \eqn{p_1 + p_2}
 #' @param rp \eqn{min(p_1, p_2)}

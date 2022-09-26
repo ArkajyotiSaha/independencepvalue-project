@@ -13,9 +13,11 @@ params:
 \newcommand{\bI}{{\bf I}}
 \newcommand{\bW}{{\bf W}}
 \newcommand{\bS}{{\bf S}}
+\newcommand{\bR}{{\bf R}}
 \newcommand{\bT}{{\bf T}}
 \newcommand{\bL}{{\bf L}}
 \newcommand{\bg}{{\bf g}}
+\newcommand{\bx}{{\bf x}}
 \newcommand{\bSigma}{{\boldsymbol\Sigma}}
 \newcommand{\bLambda}{{\boldsymbol\Lambda}}
 \newcommand{\bGamma}{{\boldsymbol\Gamma}}
@@ -37,7 +39,7 @@ usethis::create_package(
   path = ".",
   fields = list(
     Package = params$package_name,
-    Version = "0.0.1",
+    Version = "0.0.2",
     Title = "Testing independence between groups of Gaussian variables",
     Description = "Discovers block diagonal structure from a given covariance matrix through thresholding correlations and then tests whether a block is independent from the remaining variables in a fashion that accounts for the selection of the blocks.  A function for testing in the classical setting where these groups are predetermined is also implemented.",
     `Authors@R` = c(person(
@@ -95,22 +97,23 @@ First, given the group $\P$, we use (4)-(5) of the paper to compute the test sta
 $$
 \bS_{\P,\P^c}^W = \bS_{\P,\P}^{-\frac{1}{2}}\bS_{\P,\P^c}\bS_{\P^c,\P^c}^{-\frac{1}{2}}.
 $$
-We obtain the Singular Value Decomposition (SVD) of $\bS_{\P,\P^c}^W$ as follows:
+We obtain the singular value decomposition (SVD) of $\bS_{\P,\P^c}^W$ as follows:
 $$\bS_{\P,\P^c}^W = \hat{\bA}\hat{\bLambda}\hat{\bGamma}^\top,$$ 
 where $\hat{\bLambda} := \mathrm{diag}(\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r)$ is the diagonal matrix of the $r = r(\P):=\min\{|\P|,|\P^c|\}$ singular values of $\bS_{\P,\P^c}^W$ and $\hat{\bA}$ and $\hat{\bGamma}$ are the left and right singular vectors of $\bS_{\P,\P^c}^W$, respectively. $\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r$ can be interpreted as the canonical correlations between the variables in $\P$ and $\P^c$. The test statistics is given by $\prod_{i = 1}^r (1 - \hat{\lambda_i}^2)$. To compute this, we define a function that given a covariance matrix $\bS$ and a group $\P$, computes and returns the test statistic along with $\bS_{\P,\P}$, $\bS_{\P^c,\P^c}$, the left and right singular vectors of $\bS_{\P,\P^c}$, i.e. $\bS_{\P,\P}^{\frac{1}{2}}\hat{\bA}$ and $\bS_{\P^c,\P^c}^{\frac{1}{2}}\hat{\bGamma}$, since we will be using these information [when testing in the selective context](#selective).
+
+**ARKA: Please tie your explanation more closely to what the function is actually doing (in terms of the definitions of `S11` as either $\P$ or $\P^C$ depending on the size of $|\P|$.  In particular, you might say something like this: Since the test statistic is identical with $\P$ and $\P^C$ interchanged, this function will swap $\P$ and $\P^C$ if needed to ensure that $|\P|\ge p/2$.**
 
 ```{r}
 #' Compute the test statistic as a function of canonical correlations. 
 #' 
-#' Given a covariance matrix \eqn{S} and a group of variables \eqn{P}, first
+#' Given a sample covariance matrix \eqn{S} and a group of variables \eqn{P}, first
 #' computes the cross-covariance matrix between the whitened variables: 
 #' \eqn{S_{P, P^c}^W = S_{P, P}^{-0.5} S_{P, P^c} S_{P^c, P^c}^{-0.5}}. Next, 
 #' computes the SVD of \eqn{S_{P, P^c}^W} and returns the test statistic, 
 #' \eqn{S_{P, P}}, \eqn{S_{P^c, P^c}} and the singular vectors 
 #' of \eqn{S_{P, P^c}}.
-#'
 #' 
-#' @param S a \eqn{p \times p} covariance matrix
+#' @param S a \eqn{p \times p} sample covariance matrix
 #' @param CP a vector of length \eqn{p} with \eqn{i^{th}} element denoting the 
 #' group \eqn{i^{th}} variable belongs to
 #' @param k the group to be tested for independence with the remaining variables, i.e. \eqn{P = i : CP[i]==k}
@@ -216,6 +219,8 @@ sample_psi <- function(p, rp, n) {
 }
 ```
 
+We use the above function in the following function, which samples from the null distribution of the test statistic:
+
 ```{r}
 #' Function for Monte Carlo simulation for classical inference
 #'
@@ -237,7 +242,13 @@ MC_function_classical <- function(p, rp, n){
 }
 ```
 
-As noted in Prop 1(iii) of the paper, when $r=1$ this can be done by sampling $\lambda_1^2\sim\text{Beta}([p-1]/2, [n-p]/2)$ and then computing $(1-\lambda_1^2)$. Let's do a visual check of `MC_function_classical()` by making sure it matches up with this other approach in the $r=1$ case.
+As noted in Prop 1(iii) of the paper, when $r=1$ this can be done by sampling 
+
+$$
+\lambda_1^2\sim\text{Beta}([p-1]/2, [n-p]/2)
+$$
+
+and then computing $(1-\lambda_1^2)$. Let's do a visual check of `MC_function_classical()` by making sure it matches up with this other approach in the $r=1$ case.
 
 ```{r}
 set.seed(123)
@@ -277,7 +288,7 @@ testthat::test_that("MC_function_classical() works", {
 ```
 
 
-Next, we make use of `MC_function_classical()` for a function to test the independence of two pre-specified groups of variables:
+Next, we make use of `MC_function_classical()` within a function for testing the independence of two pre-specified groups of variables.  The idea is to compute the observed value of the test statistic and then compare it to a large number of Monte Carlo samples from the null distribution of the test statistic.  When $r=1$, we do not need to use Monte Carlo sampling; rather, we use the cdf of the beta distribution described above.
 
 ```{r}
 #' Function to test the independence of two pre-specified groups of variables
@@ -310,10 +321,12 @@ Next, we make use of `MC_function_classical()` for a function to test the indepe
 classical_p_val <- function(S, CP, k, n, mc_iter= 1000){
   test_hyp <- test_stat_CCA(S, CP, k)
   p <- nrow(S)
+  message("ARKA: Why is this next line necessary?  Doesn't test_stat_CCA() ensure that p2 = rp?")
   rp <- min(p - nrow(test_hyp$S22), nrow(test_hyp$S22))
   if(rp == 1){
+    message("ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2?")
     classic_p_val <- 1 - stats::pbeta(1-test_hyp$statistic, (p - 3)/2 + 1, (n - p - 2)/2 + 1) 
-    # for r(p) = 1, we have simple approximation of p_value based on beta distribution.
+    # for r(p) = 1, we have more efficient way to compute p_value based on beta distribution.
   }
   if(rp > 1){
     sip <- future.apply::future_sapply(1:mc_iter, function(i) MC_function_classical(p, rp, n), future.seed = TRUE)
@@ -325,7 +338,7 @@ classical_p_val <- function(S, CP, k, n, mc_iter= 1000){
 ```
 
 
-Next, we demonstrate an example use of the `classical_p_val()`:
+Here's an example use of the `classical_p_val()`:
 
 ```{r}
 # Simulates a 10 x 3 \eqn{X_1} from \eqn{N(0, I)}
@@ -341,7 +354,7 @@ covX <- cov(cbind(X_1, X_2))
 classical_p_val(S=covX, n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100)
 ```
 
-We also add a code to test the function `classical_p_val()`:
+We also add a test of the function `classical_p_val()`:
 
 ```{r}
 testthat::test_that("classical_p_val() works", {
@@ -359,14 +372,16 @@ testthat::test_that("classical_p_val() works", {
 })
 ```
 
+**ARKA: Please add a test of the `rp==1` case to ensure that this part of the code works as well.**
+
 ### How we partition variables into groups {#partition}
 
-Given a correlation matrix and a threshold $c$ with $0 < c< 1$, we obtain the block diagonal structure by thresholding the absolute values of the entries of the correlation matrix at c. 
+Given a correlation matrix and a threshold $c$ with $0 < c < 1$, we obtain the block diagonal structure by thresholding the absolute values of the entries of the correlation matrix at $c$. 
 
 ```{r}
 #' Function to obtain block diagonal structure through thresholding
 #'
-#' Given a correlation matrix \eqn{R}, this function discovers the block-diagonal structure by thresholding the absolute values of the entries of the correlation matrix at \eqn{c}. We create an adjacency matrix with the elements being 1 if and only if the corresponding member of the correlation matrix has an absolute value \eqn{\ge c}. This is equivalent to performing a single linkage hierarchical clustering on the variables, with the distance matrix given by \eqn{1 - |R|} and truncating the tree at \eqn{1-c}.
+#' Given a correlation matrix \eqn{R}, this function discovers the block-diagonal structure by thresholding the absolute values of the entries of the correlation matrix at \eqn{c}. We create an adjacency matrix with the elements being 1 if and only if the corresponding member of the correlation matrix has an absolute value \eqn{\ge c}. This is equivalent to performing a single linkage hierarchical clustering on the variables, with the distance matrix given by \eqn{1 - |R|} and cutting the tree at height \eqn{1-c}.
 #' 
 #' @param R a \eqn{p \times p} correlation matrix
 #' @param c a threshold
@@ -375,7 +390,7 @@ Given a correlation matrix and a threshold $c$ with $0 < c< 1$, we obtain the bl
 #' # Simulates a 10 x 5 X from N(0, I)
 #' set.seed(1)
 #' X <- matrix(rnorm(50), 10, 5)
-#' # Compute the coreelation matrix of X.
+#' # Compute the correlation matrix of X.
 #' corX <- cor(X)
 #' # Compute the block diagonal structure at c=0.5
 #' block_diag(R=corX, c=0.5)
@@ -384,7 +399,7 @@ block_diag <- function(R, c){
   dis_R <- 1 - abs(R)
   test <- stats::as.dist(dis_R, diag = TRUE)
   clust_result <- stats::hclust(test, method = "single")
-  return(stats::cutree(clust_result, h=(1 - c)))
+  return(stats::cutree(clust_result, h = (1 - c)))
 }
 ```
 
@@ -400,36 +415,183 @@ testthat::test_that("block_diag() works", {
 
 ### When groups are selected with `block_diag()` {#selective}
 
-We will be using selective inference to obtain the p-value for testing the hypothesis of independence of a selected group of varirables $\hP$ (obtained using `block_diag()`) with the remaining variables.  First, we define a function to simulate from the joint distribution of the canonical correlations and check if $\hP$ is recovered by applying `block_diag()` on the perturbed covariance matrix. 
+In this section we define the code for performing selective inference.  In particular, we obtain a selective p-value for testing the hypothesis of independence of a group of variables $\hP$ selected using `block_diag()` with the remaining variables.
+
+By Theorem 1, we need to compute
+
+$$
+p(\bx,\hP)=\mathbb P(T(\blambda)\le T(\hat{\blambda}^\hP(\bx))~|~\hP\in\P(\bS'(\bx,\hP,\blambda))),
+$$
+where $T(\cdot)$ is the test statistic, $\P(\cdot)$ represents the group selection procedure defined by `block_diag()`, and $\blambda$ is a random vector with joint density $f$ from Proposition 1(i).
+
+As shown in Algorithm S1 of the supplement, we evaluate this probability in one of three different ways, depending on the size of $r=\min\{|\hP|,|\hP^c|\}$:
+
+1. $r = 1$: As demonstrated in Section 4.1 of the paper, we can express this simply in terms of the CDF of the beta distribution.
+
+2. When $r > 1$ & $r$ is small: We use a numerical integration approach.
+
+3. When $r$ is large: We use a Monte Carlo approximation.
+
+Our main function for computing the selective p-value first computes the test and some other useful information by calling the function `test_stat_CCA()` and then decides which of the three tests should be performed.
+
+**ARKA: Add here an explanation of why `du` is set to 0 and relatedly why you check whether `du<=0`.**
 
 ```{r}
-#' Function for Monte Carlo simulation for selective inference
+#' Test independence of a data-dependent group of variables with the rest
 #'
-#' Samples from the joint distirbution of the canonical correlations between two groups of independent Gaussian variables of size \eqn{p_1} and \eqn{p_2} using \code{sample_psi()}, and then computes the corresponding test statistic, which follows a Wilks' lambda distribution. Given a matrix \code{L} with \code{rp} columns, and a vector of length equal to the number of rows in \code{L}, checks if the sampled vector \eqn{\lambda} satisfies \eqn{\lambda : L\lambda \le g}
+#' Given a covariance matrix `S` of `p` Gaussian variables and a grouping obtained
+#' via thresholding absolute correlations at `1-c` using `block_diag()`, this 
+#' function tests the null hypothesis of independence between two groups of 
+#' Gaussian variables.
 #' 
-#' @param p \eqn{p_1 + p_2}
-#' @param rp \eqn{min(p_1, p_2)}
+#' @param S a \eqn{p \times p} covariance matrix
+#' @param CP a vector of length \eqn{p} with \eqn{i^{th}} element denoting the 
+#' group \eqn{i^{th}} variable belongs to
+#' @param k the group to be tested for independence with the remaining variables, i.e. \eqn{P = [i : CP[i]==k]}
 #' @param n sample size
-#' @param L a matrix with \code{rp} columns
-#' @param g a vector of length equal to the number of rows in \code{L}
-#' @return
-#' \item{statistic}{Test statistic corresponding to simulated \eqn{\lambda}.}
-#' \item{status}{A logical vector indicating if the simulated \eqn{\lambda} satisfies \eqn{L\lambda \leq g}.}
-#' @keywords internal
-MC_function_selective <- function(p, rp, n, L, g){
-  if(nrow(L)!=length(g)){stop("error: number of rows of matrix L must be equal to the number of rows of vector g")}
-  F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
-  while(any(F_X_eigenvalues<0)){
-    F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
+#' @param c a threshold
+#' @param d0 a natural number; if the number of canonical correlations is greater than \code{d0}, Monte Carlo simulation will be used to approximate the p-value for computational convenience; default value is 5
+#' @param mc_iter the number of Monte Carlo iterations used to approximate the p-value
+#' @return The selective p-value for the test of independence.
+#' @examples
+#' # Simulates a 10 x 5 X from N(0, I)
+#' set.seed(1)
+#' X <- matrix(rnorm(50), 10, 5)
+#'
+#' # Compute the correlation matrix of X.
+#' corX <- cor(X)
+#' # Use 'block_diag' to obtain any block diagonal structure
+#' block_diag_structure <- block_diag(corX, c= 0.5)
+#' # test for independence of the variables in group 1 with the remaining variables
+#' selective_p_val(S=cov(X), n=10, CP=block_diag_structure, c=0.5, k=1, d0=5, mc_iter=100)
+#' @export 
+selective_p_val <- function(S, CP, k, n, c, d0 = 5, mc_iter = 1000){
+  test_hyp <- test_stat_CCA(S, CP, k)
+  p1 <- nrow(test_hyp$S11)
+  p2 <- nrow(test_hyp$S22)
+  if (p2 == 1) {
+    du <- selective_p_val_beta(S, CP, k, n, c, test_hyp)
   }
-  statistic <- 1/prod(1+F_X_eigenvalues)
-  # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
-  status <- all(L %*% sqrt(F_X_eigenvalues/(1+F_X_eigenvalues)) <= g)
-  return(list(statistic=statistic, status=status))
+  else {
+    du <- 0
+    L <- form_L(test_hyp)
+    g <- c(rep(c, 2 * p1 * p2), rep(0, p2), rep(1, p2))
+    if (p2 <= d0) {
+      du <- selective_p_val_integrate(n, L, g, test_hyp)
+    }
+    if (du <= 0 || du >= 1 || p2 > d0) {
+      # use Monte Carlo approach
+      du <- selective_p_val_MC(n, L, g, test_hyp, mc_iter)
+    }
+  }
+  message("ARKA: Is the c() serving some purpose in the next line?")
+  return(c(du))
 }
 ```
 
-Next, we need a function to evaluate the joint density of the canonical correlations which will be useful numerical integration based approximation of the p-value:
+We describe the functions `selective_p_val_beta()`, `selective_p_val_integrate()`, and `selective_p_val_MC()` in the next two subsections.
+
+#### The r = 1 case
+
+Proposition 4 in Section 4.1 of the paper shows that we can express $p(\bx,\hP)$ in terms of the CDF of the beta distribution:
+$$
+p(\bx,\hP)=\frac{F(g_u) - F(\min(g_u, 1 - t))}{F(g_u) - F(0)},
+$$
+where $t$ denotes the test statistic, $F$ is the CDF of a $\text{Beta}([p-1]/2, [n-p]/2)$ distribution, and $g_u$ is derived in (S17) of Supplementary Material to be
+
+$$
+g_u\left(\bS \left( \bx\right), \hP, c\right) := \min \left\{1, \left( \frac{c\hat\lambda_1^{\hP}\left(\bx\right)}{\max_{i' \in \hP, j' \in \hP^c}\left| \bR_{i',j'}\left(\bS\left( \bx\right)\right)\right|}\right)^2\right\}.
+$$
+This approach to computing the selective p-value is implemented as follows:
+
+```{r}
+#' Compute selective p-value using numerical integration
+#' 
+#' @param S a \eqn{p \times p} covariance matrix
+#' @param CP a vector of length \eqn{p} with \eqn{i^{th}} element denoting the 
+#' group \eqn{i^{th}} variable belongs to
+#' @param k the group to be tested for independence with the remaining variables, i.e. \eqn{P = [i : CP[i]==k]}
+#' @param n sample size
+#' @param c a threshold
+#' @param test_hyp output of `test_stat_CCA()`
+#' 
+#' @keywords internal
+selective_p_val_beta <- function(S, CP, k, n, c, test_hyp) {
+  p <- nrow(S)
+  diag_S <- diag(1 / sqrt(diag(S)))
+  R <- diag_S %*% S %*% diag_S
+  g_u <-
+    min(1, c ^ 2 * test_hyp$statistic / max(abs(R[CP == k, CP != k])) ^ 2)
+  message("ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2 in the next line?")
+  I_denom_tot <- stats::pbeta(0, g_u, min(g_u, 1 - test_hyp$statistic), (p - 3) / 2 + 1, (n - p - 2) / 2 + 1)
+  (I_denom_tot[2] - I_denom_tot[1]) / (I_denom_tot[2] - I_denom_tot[3])
+}
+```
+
+#### The r > 1 case
+
+Theorem 2 tells us that
+
+$$
+p(\bx,\hP)=\mathbb P(T(\blambda)\le T(\hat{\blambda}^\hP(\bx))|\bL\blambda\le \bg)
+$$
+
+where $T(\cdot)$ is the test statistic, $\blambda\sim f$ from Proposition 1(i), and $\bL$ and $\bg$ depend on $\bx$, $\hP$, and $c$ (the particular functional forms of these will be given below).
+
+The functions `selective_p_val_integrate()` and `selective_p_val_MC()` both make use of this fact, so `selective_p_val()` computes $L$ and $g$ before calling either function.
+
+**ARKA: Please include here in latex the details of how one can go from what's shown in Section S5 and S6 to the $L$ you are constructing in the code.**
+
+```{r}
+#' Form L matrix described in Theorem 2
+#' 
+#' @param test_hyp output of `test_stat_CCA()`
+#' 
+#' @keywords internal
+form_L <- function(test_hyp) {
+  p1 <- nrow(test_hyp$S11)
+  p2 <- nrow(test_hyp$S22)
+  
+  L <- matrix(0, (2 * p1 * p2 + 2 * p2), p2)
+  for (i in 1:p1) {
+    for (j in 1:p2) {
+      temp <-
+        test_hyp$left_SV[i, ] * test_hyp$right_SV[j, ] / sqrt(test_hyp$S11[i, i] *
+                                                                test_hyp$S22[j, j])
+      L[2 * ((i - 1) * p2 + j) - 1,] <- temp
+      L[2 * ((i - 1) * p2 + j),] <- -temp
+    }
+  }
+  for (k in 1:(p2 - 1)) {
+    L[2 * p1 * p2 + k, k:(k + 1)] <- c(-1, 1)
+  }
+  L[2 * p1 * p2 + p2, p2] <- -1
+  for (k in 1:(p2)) {
+    L[2 * p1 * p2 + p2 + k, k] <- 1
+  }
+  return(L)
+}
+```
+
+**ARKA: For loops are very slow in R whereas matrix multiplication is fast.  Rather than computing `temp` for each `ij` pair, I believe it should be possible to use matrix multiplication (once) and avoid the for loops entirely.  Likewise for you should be able to form the part of `L` that has $\pm1$ without for loops.**
+
+
+##### Numerical integration
+
+The quantity $p(\x,\hP)$ can be computed by numerical integration of the numerator and denominator of
+
+$$
+\frac{\int_{\left\{\bL\blambda \leq \bg\right\}} f\left(\blambda\right)g\left(\blambda\right)d\lambda_1d\lambda_2\ldots d\lambda_{r\left(\hP\right)}}{\int_{\bL\blambda \leq \bg} f\left(\blambda\right)d\lambda_1d\lambda_2\ldots d\lambda_{r\left(\hP\right)}}
+$$
+
+where
+
+$$
+g\left(\blambda\right)=1\left\{\prod_{i= 1}^{r\left(\hP\right)}  \left(1 - \lambda_i^2\right) \leq  \prod_{i = 1}^{r\left(\hP\right)} \left(1 - \left(\hat\lambda_i^{\hP}\left(\bx\right)\right)^2\right)\right\}
+$$
+
+and $f$ is the joint density of $\blambda$ under the null.  The following function evaluates $f$ (up to a scaling):
+
 ```{r}
 #' Function to evaluate the joint density of the canonical correlations
 #'
@@ -458,24 +620,17 @@ We have used the function `matrixStats::colProds()` in the above, so we import t
 usethis::use_package("matrixStats")
 ```
 
+**ARKA: To calculate `c3`, couldn't you do `sum(colSums(log(dip)))` instead?  Or for that matter even simpler: `sum(log(dip))`?  If yes, then it seems you don't need to depend on the `matrixStats` package.**
 
-Next, we make use of `MC_function_selective()` and `dCCA()` to compute the p-value for test of independence, when the group $\hP$ is obtained from `block_diag`. In order to control the selective type I error, we compute the p-value based only on the cases, where applying `block_diag()` with threshold $c$, recovers the initial grouping, observed in the data. In Theorem 2 of the paper, it was demonstrated that this is equivalent to only considering $\blambda = (\lambda_1, \lambda_2, \ldots, \lambda_r)$, which satisfy $\bL \blambda \le \bg$, where $\bL$ is a matrix (dependent on $\bS$) with $r$ columns and $\bg$ is a vector (dependent on $c$) of length $r$. For optimizing the computational overhead, we will follow three strategies depending on the values of $r$ to approximate the p-value. Recall that $r=\min\{|\P|,|\P^c|\}$.
 
-1. $r = 1$: Here, as demonstrated in Section 4.1 of the paper, we can bypass the polytope representation and have a simple approximation in terms of ratios of cumulative beta distribution functions, given as:
-$$
-\hat{p}=\frac{F(g_u) - F(\min(g_u, 1 - t))}{F(g_u) - F(0)},
-$$
-where $g_u$ is a constant dependent on the threshold $c$ and the sample covariance matrix $\bS$ (see (S17) of Supplementary Material), $t$ is the test statistic, and $F$ is the CDF of the Beta distribution with parameters $\frac{p -1}{2}$ and $\frac{n - p}{2}$. 
-
-2. When $r > 1$ & $r$ is small: Here, due to a lack of simple approximation, we opt for a numerical integration approach:
-  * First we compute the convex hull representation of the convex polytope $\{\blambda : \bL \blambda \le \bg\}$. We use R package `rcdd` to go between different representations of polytopes.
-  * Next, we use R package `volesti` to build the polytope from the convex hull and then compute the Delaunay triangulation of the convex hull with package `geometry`.
-  * Now, we integrate the functions $f(\blambda)$  and $f(\blambda)\mathbb I\{\blambda:\prod_{i = 1}^r (1 - \lambda_i^2) \le \prod_{i = 1}^r (1 - \hat{\lambda_i}^2)\}$ over the simplices obtained in the previous step using package `SimplicialCubature` and take their sums. Here, $f(\cdot)$ is the joint density of \blambda (see (7) of the paper), evaluated with `dCCA()`, upto a constant. 
+The function `selective_p_val_integrate()` relies on efficient code for performing numerical integration over simplices.  In particular, it does the following:
+  * First we compute the convex hull representation of the convex polytope $\{\blambda : \bL \blambda \le \bg\}$. We use the R package `rcdd` to go between different representations of polytopes.
+  * Next, we use the R package `volesti` to build the polytope from the convex hull and then compute the Delaunay triangulation of the convex hull with the package `geometry`.
+  * Next, we integrate the functions $f(\blambda)$  and $f(\blambda)g(\blambda)$ over the simplices obtained in the previous step using the package `SimplicialCubature` and take their sums. Here, $f(\cdot)$ is the joint density of $\blambda$ (see (7) of the paper), evaluated with `dCCA()`, up to a constant. 
   * The ratio of these two quantities approximates the selective p-value. 
 
-3. When $r$ is large: Here, for sake of reducing computational overhead, we opt of Monte Carlo approximation. We simulate $\blambda$ from their joint distribution, compute the corresponding statistic and check if they belong to the polytope $\{\blambda : \bL \blambda \le \bg\}$ with `MC_function_selective()`. 
+We start by importing these packages:
 
-As explained in 2., we will require some R packages. We import these packages:
 ```{r, message=FALSE}
 usethis::use_package("volesti")
 usethis::use_package("SimplicialCubature")
@@ -484,102 +639,135 @@ usethis::use_package("geometry")
 ```
 
 
+**ARKA: Please explain here why `du` is set to 0 at the start and end of this function.  This relates to the `try`, which should also be explained.**
+
+**ARKA: Please add some comments to the function below.**
+
+**ARKA: Why is alpha needed in the code below?  Won't it cancel when we take the ratio?**
+
 ```{r}
-#' Function to test the independence of a data-dependent group of variables with the remaining variables
-#'
-#' Given a covariance matrix \eqn{S} of \eqn{p} Gaussian variables and a grouping obtained via thresholding at \eqn{c} with \code{block_diag}, this tests the null hypothesis of independence between two groups of Gaussian variables.
+#' Compute selective p-value using numerical integration
 #' 
-#' @param S a \eqn{p \times p} covariance matrix
-#' @param CP a vector of length \eqn{p} with \eqn{i^{th}} element denoting the 
-#' group \eqn{i^{th}} variable belongs to
-#' @param k the group to be tested for independence with the remaining variables, i.e. \eqn{P = [i : CP[i]==k]}
 #' @param n sample size
-#' @param c a threshold
-#' @param d0 a natural number; if the number of canonical correlations is greater than \code{d0}, Monte Carlo simulation will be used to approximate the p-value for computational convenience; default value is 5
-#' @param mc_iter the number of Monte Carlo iterations used to approximate the p-value
-#' @return The selective p-value for the test of independence.
-#' @examples
-#' # Simulates a 10 x 5 X from N(0, I)
-#' set.seed(1)
-#' X <- matrix(rnorm(50), 10, 5)
-#'
-#' # Compute the correlation matrix of X.
-#' corX <- cor(X)
-#' # Use 'block_diag' to obtain any block diagonal structure
-#' block_diag_structure <- block_diag(corX, c= 0.5)
-#' # test for independence of the variables in group 1 with the remaining variables
-#' selective_p_val(S=cov(X), n=10, CP=block_diag_structure, c=0.5, k=1, d0=5, mc_iter=100)
-#' @export 
-selective_p_val <- function(S, CP, k, n, c, d0=5, mc_iter= 1000){
-  test_hyp <- test_stat_CCA(S, CP, k)
-  p <- nrow(S)
+#' @param L matrix used to define conditioning set
+#' @param g vector used to define conditioning set
+#' @param test_hyp output of `test_stat_CCA()`
+#' 
+#' @keywords internal
+selective_p_val_integrate <- function(n, L, g, test_hyp) {
+  p1 <- nrow(test_hyp$S11)
   p2 <- nrow(test_hyp$S22)
-  p1 <- p - p2
-  if(p2 == 1){
-      diag_S <- diag(1/sqrt(diag(S)))
-      R <- diag_S %*% S %*% diag_S
-      g_u <- min(1, c^2 * test_hyp$statistic/max(abs(R[CP==k, CP!=k]))^2)
-      I_denom_tot <- stats::pbeta(0, g_u, min(g_u, 1 - test_hyp$statistic), (p - 3)/2 + 1, (n - p - 2)/2 + 1)
-      du <- (I_denom_tot[2] - I_denom_tot[1])/(I_denom_tot[2] - I_denom_tot[3])
-  }
-  else{
-    L <- matrix(0, (2 * p1 * p2 + 2 *p2), p2)
-    for(i in 1:p1){
-      for(j in 1:p2){
-        temp <- test_hyp$left_SV[i,] * test_hyp$right_SV[j,]/sqrt(test_hyp$S11[i,i]*test_hyp$S22[j, j])
-        L[2*((i-1) * p2 + j)-1, ] <- temp
-        L[2*((i-1) * p2 + j), ] <- - temp
+  p <- p1 + p2
+
+  du <- 0
+  P <- rcdd::makeH(L, g, x = NULL)
+  PV_d <- rcdd::scdd(P)
+  V_d <- as.matrix(PV_d$output[,-c(1, 2)])
+  Pi <- volesti::Vpolytope(V = V_d)
+  triang = try(geometry::delaunayn(Pi@V), silent = TRUE)
+  if (!inherits(triang, 'try-error')) {
+    prod_res <- 1
+    for (i in 1:p2) {
+      prod_res <-
+        prod_res * gamma((n - i) / 2) / (gamma((n - p2 -  i) / 2) * gamma((p1 - i + 1) /
+                                                                            2) * gamma((p2 - i + 1) / 2))
+    }
+    alpha <- log(pi ^ (p2 / 2) * 2 ^ p *  prod_res)
+    f_tot <- function(x) {
+      dt <- dCCA(n, p, p2, alpha, x)
+      return(c(dt, dt * (prod(1 - x ^ 2) <= test_hyp$statistic)))
+    }
+    part_int <- function(i, Pi, triang, f_tot) {
+      if (stats::var(round(Pi@V[triang[i, ],][, 1], 5)) == 0) {
+        Pi@V[triang[i, ],][, 1][length(Pi@V[triang[i, ],][, 1])] <-
+          Pi@V[triang[i, ], ][, 1][length(Pi@V[triang[i, ],][, 1])] * (1 - 10 ^ (-5))
       }
+      return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i, ],]), fDim = 2)$integral)
     }
-    for(k in 1:(p2-1)){
-      L[2*p1*p2 + k,k:(k+1)] <- c(-1, 1)
-    }
-    L[2 * p1 * p2 + p2, p2] <- -1
-    for(k in 1:(p2)){
-      L[2*p1*p2 + p2 + k,k] <- 1
-    }
-    g <- c(rep(c, 2 * p1 * p2), rep(0, p2), rep(1, p2))
-    du <- 0
-    if(p2 <= d0){
-      P <- rcdd::makeH(L, g, x = NULL)
-      PV_d <- rcdd::scdd(P)
-      V_d <- as.matrix(PV_d$output[ , - c(1, 2)])
-      Pi <- volesti::Vpolytope(V = V_d)
-      triang = try(geometry::delaunayn(Pi@V), silent = TRUE)
-      if(!inherits(triang,'try-error')){
-        prod_res <- 1
-        for(i in 1:p2){
-          prod_res <- prod_res * gamma((n - i)/2)/(gamma((n - p2 -  i)/2) * gamma((p1 - i + 1)/2) * gamma((p2 - i + 1)/2))
-        }
-        alpha <- log(pi^(p2/2) * 2^p *  prod_res)
-        f_tot <- function(x){
-          dt <- dCCA(n, p, p2, alpha, x)
-          return(c(dt, dt* (prod(1 - x^2) <= test_hyp$statistic)))
-          }
-        part_int <- function(i, Pi, triang, f_tot){
-          if(stats::var(round(Pi@V[triang[i,], ][,1], 5)) == 0) {
-            Pi@V[triang[i,], ][,1][length(Pi@V[triang[i,], ][,1])] <- Pi@V[triang[i,],][,1][length(Pi@V[triang[i,], ][,1])]*(1 - 10^(-5))
-          }
-          return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i,], ]), fDim = 2)$integral)
-        }
-        par_I_tot_list <- future.apply::future_sapply(1:nrow(triang), part_int, Pi, triang, f_tot, future.seed=TRUE)
-        du <- sum(par_I_tot_list[2,])/sum(par_I_tot_list[1,])
-        if(sum(par_I_tot_list[1,]) == 0){du <- 0}
-      }
-    }
-    if(du <= 0 || du >= 1 || p2 > d0){
-      sip <- future.apply::future_sapply(1:mc_iter, function(i) MC_function_selective(p, p2, n, L, g), future.seed=TRUE)
-      zp <- sum(as.numeric(sip[2,]))
-      if(zp < 100){
-        sip <- future.apply::future_sapply(1:(min((mc_iter * 100/zp), 100000)), function(i) MC_function_selective(p, p2, n, L, g), future.seed=TRUE)
-      }
-      du <- mean(test_hyp$statistic >= sip[1,][sip[2,] == TRUE])
+    par_I_tot_list <-
+      future.apply::future_sapply(1:nrow(triang), part_int, Pi, triang, f_tot, future.seed =
+                                    TRUE)
+    du <- sum(par_I_tot_list[2, ]) / sum(par_I_tot_list[1, ])
+    if (sum(par_I_tot_list[1, ]) == 0) {
+      du <- 0
     }
   }
-  select_p_val <- du
-  return(c(select_p_val))
+  return(du)
 }
 ```
+
+
+##### Monte Carlo approach
+
+Here we define the Monte Carlo approach to approximating
+
+$$
+p(\bx,\hP)=\mathbb P(T(\blambda)\le T(\hat{\blambda}^\hP(\bx))|\bL\blambda\le \bg).
+$$
+
+The function `sample_psi()` (that we used in the classical p-value case) allows us to sample from $\blambda\sim f$.  The Monte Carlo approach will sample many  such $\blambda$ vectors and then keep those for which $\bL\blambda\le \bg$.  This corresponds to sampling from the conditional distribution.  We then will compare the actual test statistic to the samples from the conditional distribution.
+
+The following function draws a random vector $\blambda$ from the null distribution, computes the corresponding statistic, and then checks if the drawn $\blambda$ belongs to the polytope $\{\blambda : \bL \blambda \le \bg\}$.
+
+
+```{r}
+#' Function for Monte Carlo simulation for selective inference
+#'
+#' Samples from the joint distribution of the canonical correlations between two groups of independent Gaussian variables of size \eqn{p_1} and \eqn{p_2} using \code{sample_psi()}, and then computes the corresponding test statistic, which follows a Wilks' lambda distribution. Given a matrix \code{L} with \code{rp} columns, and a vector of length equal to the number of rows in \code{L}, checks if the sampled vector \eqn{\lambda} satisfies \eqn{\lambda : L\lambda \le g}
+#' 
+#' @param p \eqn{p_1 + p_2}
+#' @param rp \eqn{min(p_1, p_2)}
+#' @param n sample size
+#' @param L a matrix with \code{rp} columns
+#' @param g a vector of length equal to the number of rows in \code{L}
+#' @return
+#' \item{statistic}{Test statistic corresponding to simulated \eqn{\lambda}.}
+#' \item{status}{A logical vector indicating if the simulated \eqn{\lambda} satisfies \eqn{L\lambda \leq g}.}
+#' @keywords internal
+MC_function_selective <- function(p, rp, n, L, g){
+  if(nrow(L)!=length(g)){stop("error: number of rows of matrix L must be equal to the number of rows of vector g")}
+  F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
+  while(any(F_X_eigenvalues<0)){
+    F_X_eigenvalues <- sample_psi(p, rp, n) # eigenvalues of (inv(W)T)
+  }
+  statistic <- 1/prod(1+F_X_eigenvalues)
+  # prod(1 - lambda_i^2) = prod(1 - Psi_i/(1 + Psi_i)) = prod(1/(1 + Psi_i))
+  status <- all(L %*% sqrt(F_X_eigenvalues/(1+F_X_eigenvalues)) <= g)
+  return(list(statistic=statistic, status=status))
+}
+```
+
+This function is then repeatedly called to form a Monte Carlo estimate of the selective p-value.
+
+```{r}
+#' Compute selective p-value using Monte Carlo
+#' 
+#' @param n sample size
+#' @param L matrix used to define conditioning set
+#' @param g vector used to define conditioning set
+#' @param test_hyp output of `test_stat_CCA()`
+#' @param mc_iter number of Monte Carlo iterations
+#' 
+#' @keywords internal
+selective_p_val_MC <- function(n, L, g, test_hyp, mc_iter) {
+  p1 <- nrow(test_hyp$S11)
+  p2 <- nrow(test_hyp$S22)
+  p <- p1 + p2
+  sip <-
+    future.apply::future_sapply(1:mc_iter, function(i)
+      MC_function_selective(p, p2, n, L, g), future.seed = TRUE)
+  zp <- sum(as.numeric(sip[2, ]))
+  if (zp < 100) {
+    sip <-
+      future.apply::future_sapply(1:(min((mc_iter * 100 / zp), 100000)), function(i)
+        MC_function_selective(p, p2, n, L, g), future.seed = TRUE)
+  }
+  mean(test_hyp$statistic >= sip[1, ][sip[2, ] == TRUE])
+}
+```
+
+#### Testing `selective_p_val()`
+
 Next, we demonstrate an example use of the `selective_p_val()`:
 
 ```{r}
@@ -607,7 +795,11 @@ testthat::test_that("selective_p_val() works", {
 })
 ```
 
+**ARKA: Please make sure your tests cover (at least) the three cases of r=1, r small, and r large.**
 
+**ARKA: Please also add a test that verifies that `selective_p_val_beta()` and `selective_p_val_MC()` give the same answer (within an acceptable tolerance) in the r=1 case.**
+
+**ARKA: Please also add a test that verifies that `selective_p_val_numerical()` and `selective_p_val_MC()` give the same answer (within an acceptable tolerance) in the small r case.**
 
 ## Documenting the package and building
 

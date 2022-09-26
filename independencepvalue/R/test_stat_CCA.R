@@ -2,15 +2,14 @@
 
 #' Compute the test statistic as a function of canonical correlations. 
 #' 
-#' Given a covariance matrix \eqn{S} and a group of variables \eqn{P}, first
+#' Given a sample covariance matrix \eqn{S} and a group of variables \eqn{P}, first
 #' computes the cross-covariance matrix between the whitened variables: 
 #' \eqn{S_{P, P^c}^W = S_{P, P}^{-0.5} S_{P, P^c} S_{P^c, P^c}^{-0.5}}. Next, 
 #' computes the SVD of \eqn{S_{P, P^c}^W} and returns the test statistic, 
 #' \eqn{S_{P, P}}, \eqn{S_{P^c, P^c}} and the singular vectors 
 #' of \eqn{S_{P, P^c}}.
-#'
 #' 
-#' @param S a \eqn{p \times p} covariance matrix
+#' @param S a \eqn{p \times p} sample covariance matrix
 #' @param CP a vector of length \eqn{p} with \eqn{i^{th}} element denoting the 
 #' group \eqn{i^{th}} variable belongs to
 #' @param k the group to be tested for independence with the remaining variables, i.e. \eqn{P = i : CP[i]==k}
