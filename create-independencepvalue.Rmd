@@ -1,7 +1,7 @@
 ---
 title: "Creating the ``r params$package_name`` R package"
 author: "Arkajyoti Saha"
-date: "September 15, 2022"
+date: "September 27, 2022"
 knit: litr::render
 params:
   package_name: "independencepvalue" # <-- change this to your package name
@@ -99,7 +99,7 @@ $$
 $$
 We obtain the singular value decomposition (SVD) of $\bS_{\P,\P^c}^W$ as follows:
 $$\bS_{\P,\P^c}^W = \hat{\bA}\hat{\bLambda}\hat{\bGamma}^\top,$$ 
-where $\hat{\bLambda} := \mathrm{diag}(\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r)$ is the diagonal matrix of the $r = r(\P):=\min\{|\P|,|\P^c|\}$ singular values of $\bS_{\P,\P^c}^W$ and $\hat{\bA}$ and $\hat{\bGamma}$ are the left and right singular vectors of $\bS_{\P,\P^c}^W$, respectively. $\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r$ can be interpreted as the canonical correlations between the variables in $\P$ and $\P^c$. The test statistics is given by $\prod_{i = 1}^r (1 - \hat{\lambda_i}^2)$. To compute this, we define a function that given a covariance matrix $\bS$ and a group $\P$, computes and returns the test statistic along with $\bS_{\P,\P}$, $\bS_{\P^c,\P^c}$, the left and right singular vectors of $\bS_{\P,\P^c}$, i.e. $\bS_{\P,\P}^{\frac{1}{2}}\hat{\bA}$ and $\bS_{\P^c,\P^c}^{\frac{1}{2}}\hat{\bGamma}$, since we will be using these information [when testing in the selective context](#selective).
+where $\hat{\bLambda} := \mathrm{diag}(\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r)$ is the diagonal matrix of the $r = r(\P):=\min\{|\P|,|\P^c|\}$ singular values of $\bS_{\P,\P^c}^W$ and $\hat{\bA}$ and $\hat{\bGamma}$ are the left and right singular vectors of $\bS_{\P,\P^c}^W$, respectively. $\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r$ can be interpreted as the canonical correlations between the variables in $\P$ and $\P^c$. The test statistics is given by $\prod_{i = 1}^r (1 - \hat{\lambda_i}^2)$. To compute this, we define a function that given a covariance matrix $\bS$ and a group $\P$, computes and returns the test statistic along with $\bS_{\P,\P}$, $\bS_{\P^c,\P^c}$, the left and right singular vectors of $\bS_{\P,\P^c}$, i.e. $\bS_{\P,\P}^{\frac{1}{2}}\hat{\bA}$ and $\bS_{\P^c,\P^c}^{\frac{1}{2}}\hat{\bGamma}$, since we will be using these information [when testing in the selective context](#selective). As the test statistic is identical with $\P$ and $\P^c$ interchanged, this function will swap $\P$ and $\P^c$ if needed to ensure that $|\P|\ge p/2$.
 
 **ARKA: Please tie your explanation more closely to what the function is actually doing (in terms of the definitions of `S11` as either $\P$ or $\P^C$ depending on the size of $|\P|$.  In particular, you might say something like this: Since the test statistic is identical with $\P$ and $\P^C$ interchanged, this function will swap $\P$ and $\P^C$ if needed to ensure that $|\P|\ge p/2$.**
 
@@ -322,10 +322,10 @@ classical_p_val <- function(S, CP, k, n, mc_iter= 1000){
   test_hyp <- test_stat_CCA(S, CP, k)
   p <- nrow(S)
   message("ARKA: Why is this next line necessary?  Doesn't test_stat_CCA() ensure that p2 = rp?")
-  rp <- min(p - nrow(test_hyp$S22), nrow(test_hyp$S22))
+  rp <- nrow(test_hyp$S22)
   if(rp == 1){
     message("ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2?")
-    classic_p_val <- 1 - stats::pbeta(1-test_hyp$statistic, (p - 3)/2 + 1, (n - p - 2)/2 + 1) 
+    classic_p_val <- 1 - stats::pbeta(1-test_hyp$statistic, (p - 1)/2, (n - p)/2) 
     # for r(p) = 1, we have more efficient way to compute p_value based on beta distribution.
   }
   if(rp > 1){
@@ -373,6 +373,24 @@ testthat::test_that("classical_p_val() works", {
 ```
 
 **ARKA: Please add a test of the `rp==1` case to ensure that this part of the code works as well.**
+
+We add an additional test to check if the function `classical_p_val()` works in the case of $r=1$. 
+
+```{r}
+testthat::test_that("classical_p_val() works for $r=1$", {
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  testthat::expect_equal(
+    round(classical_p_val(S=cov(X), n=10, CP=rep(1:2, times=c(1, 4)), k=1, mc_iter=100),2),
+    0.31)
+  set.seed(1)
+  X <- matrix(rnorm(50), 10, 5)
+  # testing group 2 should give identical results:
+  testthat::expect_equal(
+    round(classical_p_val(S=cov(X), n=10, CP=rep(1:2, times=c(1, 4)), k=2, mc_iter=100),2),
+    0.31)
+})
+```
 
 ### How we partition variables into groups {#partition}
 
@@ -432,7 +450,9 @@ As shown in Algorithm S1 of the supplement, we evaluate this probability in one 
 
 3. When $r$ is large: We use a Monte Carlo approximation.
 
-Our main function for computing the selective p-value first computes the test and some other useful information by calling the function `test_stat_CCA()` and then decides which of the three tests should be performed.
+Our main function for computing the selective p-value first computes the test and some other useful information by calling the function `test_stat_CCA()` and then decides which of the three tests should be performed. 
+
+When $r > 1$ & $r$ is small (i.e. in 2.), in rare cases, the numerical integration might produce a invalid (`NA` or outside $(0,1)$) approximation of the p-value (please refer to `selective_p_val_integrate()` for more details on this). We approximate the p-values using Monte Carlo approximation in these cases. In the code, we set the approximate p-value lying outside $(0,1)$ as a condition to use Monte Carlo approximation and initialise estimate of the p-value (`du` in the code) to `0`so that this condition is satisfied by default in case $r$ is large, i.e. larger that `d0` in the code. 
 
 **ARKA: Add here an explanation of why `du` is set to 0 and relatedly why you check whether `du<=0`.**
 
@@ -469,7 +489,7 @@ selective_p_val <- function(S, CP, k, n, c, d0 = 5, mc_iter = 1000){
   test_hyp <- test_stat_CCA(S, CP, k)
   p1 <- nrow(test_hyp$S11)
   p2 <- nrow(test_hyp$S22)
-  if (p2 == 1) {
+  if (p2 == 1 & p2 <= d0) {
     du <- selective_p_val_beta(S, CP, k, n, c, test_hyp)
   }
   else {
@@ -485,7 +505,7 @@ selective_p_val <- function(S, CP, k, n, c, d0 = 5, mc_iter = 1000){
     }
   }
   message("ARKA: Is the c() serving some purpose in the next line?")
-  return(c(du))
+  return(du)
 }
 ```
 
@@ -523,8 +543,8 @@ selective_p_val_beta <- function(S, CP, k, n, c, test_hyp) {
   g_u <-
     min(1, c ^ 2 * test_hyp$statistic / max(abs(R[CP == k, CP != k])) ^ 2)
   message("ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2 in the next line?")
-  I_denom_tot <- stats::pbeta(0, g_u, min(g_u, 1 - test_hyp$statistic), (p - 3) / 2 + 1, (n - p - 2) / 2 + 1)
-  (I_denom_tot[2] - I_denom_tot[1]) / (I_denom_tot[2] - I_denom_tot[3])
+  I_denom_tot <- stats::pbeta(c(0, g_u, min(g_u, 1 - test_hyp$statistic)), (p - 1) / 2, (n - p) / 2)
+  (I_denom_tot[2] - I_denom_tot[3])/(I_denom_tot[2] - I_denom_tot[1])
 }
 ```
 
@@ -542,6 +562,33 @@ The functions `selective_p_val_integrate()` and `selective_p_val_MC()` both make
 
 **ARKA: Please include here in latex the details of how one can go from what's shown in Section S5 and S6 to the $L$ you are constructing in the code.**
 
+Next, we elaborate how we can derive the $\bL$ and $\bg$ used in the code, from the Supplementary Section S5 and S6 in the Supplementary Material of the article. From S6, we have for any $\left\{\lambda_i\right\}_{i= 1}^{r}$, with $1 \ge \lambda_1 \geqslant \lambda_2 \geqslant \ldots \geqslant \lambda_{r} \ge 0$, in order to recover $\hat{\mathcal P}$, with a threshold $c$ in `block_diag()` we need,
+
+\begin{equation}
+\tag{*}
+\begin{pmatrix}
+\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) \\
+-\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)
+\end{pmatrix} \leqslant c \mathbf{1}_{2\mathrm{card}\left(\hat{\mathcal P}\right)} \mathbf 1^\top_{\left( p - \mathrm{card}\left(\hat{\mathcal P}\right)\right)},
+\end{equation}
+where $\mathbf{R}\left( \mathbf S\right)$ denotes the correlation matrix corresponding to the covariance matrix $\bS$ and $\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)$ is a modified sample covariance matrix with the perturbed off-diagonal blocks given by 
+
+\begin{equation}
+\tag{**}
+\mathbf S_{\hat{\mathcal{P}},\hat{\mathcal{P}}^c}'\left(\mathbf x, {\hat{\mathcal{P}}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right) := \mathbf U \left(\mathbf x\right) \mathrm{diag}\left(\lambda_1, \lambda_2, \ldots, \lambda_{r\left({\mathcal{R}}\right)}\right) \mathbf V \left(\mathbf x\right)^\top,
+\end{equation}
+
+where, $\mathbf U \left(\mathbf x\right)$ and $\mathbf V \left(\mathbf x\right)$ are the left and right singular vectors of $\bS_{\P,\P^c}\left(\mathbf x\right)$, i.e. $\mathbf U \left(\mathbf x\right) = \left(\bS_{\P,\P}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{\bA\left(\mathbf x\right)}$ and $\mathbf V \left(\mathbf x\right) = \left(\bS_{\P^c,\P^c}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{\bGamma}\left(\mathbf x\right)$ respectively. We obtain $\mathbf U \left(\mathbf x\right)$ and $\mathbf V \left(\mathbf x\right)$ directly from output of `test_stat_CCA()` (`left_SV` and `right_SV` respectively). Using the dervation in S5, we have, 
+\begin{equation}
+\tag{***}
+\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}, \hat{\mathcal{P}}}'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)^{-\frac{1}{2}}\mathbf S_{\hat{\mathcal{P}},\hat{\mathcal{P}}^c}'\left(\mathbf x, {\hat{\mathcal{P}}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}^c, \hat{\mathcal{P}}^c}'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)^{-\frac{1}{2}}.
+\end{equation}
+Since $\mathbf S'$ only perturbs the off-diagonal component of $\bS\left( \mathbf x\right)$, we have $\mathrm{diag}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) = \mathrm{diag}\left(\mathbf S\left(\mathbf x\right)\right)$. Combining this with [(**)](#eq:perturb) and [(***)](#eq:correlation) we have:
+
+$$
+\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}, \hat{\mathcal{P}}}\left(\mathbf x\right)\right)^{-\frac{1}{2}}\mathbf U \left(\mathbf x\right) \mathrm{diag}\left(\lambda_1, \lambda_2, \ldots, \lambda_{r}\right) \mathbf V \left(\mathbf x\right)^\top \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}^c, \hat{\mathcal{P}}^c}\left(\mathbf x\right)\right)^{-\frac{1}{2}}=\left( \left( \tilde{\mathbf U }_{i,}\odot\tilde{\mathbf V }_{j,}\blambda\right) \right)_{i,j},
+$$
+where $\tilde{\mathbf U } = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}, \hat{\mathcal{P}}}\left(\mathbf x\right)\right)^{-\frac{1}{2}}\mathbf U \left(\mathbf x\right)$, $\tilde{\mathbf V } = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}^c, \hat{\mathcal{P}}^c}\left(\mathbf x\right)\right)^{-\frac{1}{2}}\mathbf V \left(\mathbf x\right)$, $\blambda = \left(\lambda_1, \lambda_2, \ldots, \lambda_{r}\right)$, and $\mathbf a \odot \mathbf b$ denotes the elementzise product of the vectors $\mathbf a$ and $\mathbf b$. Hence elementwise product of the rows of $\tilde{\mathbf U }$ and $\tilde{\mathbf V }$ makes up the first $p_1p_2$  rows of $\bL$ correspodning to the inequalities associated with $\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)$. We append these $p_1p_2$ rows to $\bL$ with their signs reversed to account for the inequality corresponding to $-\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)$. The remaining rows of $\bL$ account for the inequalities originating from $1 \ge \lambda_1 \geqslant \lambda_2 \geqslant \ldots \geqslant \lambda_{r} \ge 0$. 
 ```{r}
 #' Form L matrix described in Theorem 2
 #' 
@@ -552,25 +599,36 @@ form_L <- function(test_hyp) {
   p1 <- nrow(test_hyp$S11)
   p2 <- nrow(test_hyp$S22)
   
-  L <- matrix(0, (2 * p1 * p2 + 2 * p2), p2)
-  for (i in 1:p1) {
-    for (j in 1:p2) {
-      temp <-
-        test_hyp$left_SV[i, ] * test_hyp$right_SV[j, ] / sqrt(test_hyp$S11[i, i] *
-                                                                test_hyp$S22[j, j])
-      L[2 * ((i - 1) * p2 + j) - 1,] <- temp
-      L[2 * ((i - 1) * p2 + j),] <- -temp
-    }
+  tildeU <- diag(1/sqrt(diag(test_hyp$S11))) %*% test_hyp$left_SV
+  if(p2 > 1){
+    tildeV <- diag(1/sqrt(diag(test_hyp$S22))) %*% test_hyp$right_SV
   }
-  for (k in 1:(p2 - 1)) {
-    L[2 * p1 * p2 + k, k:(k + 1)] <- c(-1, 1)
+  if(p2 == 1){
+    tildeV <- 1/sqrt(diag(test_hyp$S22)) * test_hyp$right_SV
+  }
+  mult_list <- future.apply::future_lapply(1:p2, function(j) {res<- data.table::copy(tildeU);  as.data.frame(collapse::setop(res, "*", tildeV[j,], rowwise = T))}, future.seed = TRUE)
+  L1 <- data.table::rbindlist(mult_list)
+  ##Jacob: I couldn't find an existing code to do rowwise/elementwise matrix multiplication. there are codes to multiply the rows of matrix by a vector. This link shows a benchmarking for that using R package collapse.  https://stackoverflow.com/questions/32690849/how-to-do-elementwise-multiplication-of-big-matrix-with-vector-very-fast/65327572#65327572. This function replaces the matrix with its product. We can run a loop (maybe apply) over p2 rows and then use rbindlist.
+  L <- matrix(0, (2 * p1 * p2 + 2 * p2), p2)
+  L[1:(2 * p1 * p2),] <- as.matrix(rbind(L1, -L1))
+  if(p2 > 1){
+    index <- cbind(2 * p1 * p2 + c(1:(p2 - 1)), c(1:(p2 - 1)))
+    L[index] <- -1
+    index[,2] <- index[,2] + 1
+    L[index] <- 1
   }
   L[2 * p1 * p2 + p2, p2] <- -1
-  for (k in 1:(p2)) {
-    L[2 * p1 * p2 + p2 + k, k] <- 1
-  }
+  index <- cbind(2 * p1 * p2 + p2 + c(1:(p2)), c(1:(p2)))
+  L[index] <- 1
   return(L)
 }
+```
+
+We have used the function `collapse::setop()` and multiple functions from the package `data.table` in the above, so we import these packages:
+
+```{r, message=FALSE}
+usethis::use_package("data.table")
+usethis::use_package("collapse")
 ```
 
 **ARKA: For loops are very slow in R whereas matrix multiplication is fast.  Rather than computing `temp` for each `ij` pair, I believe it should be possible to use matrix multiplication (once) and avoid the for loops entirely.  Likewise for you should be able to form the part of `L` that has $\pm1$ without for loops.**
@@ -609,15 +667,9 @@ dCCA <- function(n, p, rp, a, lambda){
   c2 <- ((n - p - 2)/2) * sum(log(1-lambda^2))
   dip <- matrix(1, length(lambda), length(lambda))
   dip[lower.tri(dip)] <- stats::dist(lambda^2)
-  c3 <- sum(log(matrixStats::colProds(dip)))
+  c3 <- sum(log(dip))
   return(exp(a+c1+c2+c3))
 }
-```
-
-We have used the function `matrixStats::colProds()` in the above, so we import this package:
-
-```{r, message=FALSE}
-usethis::use_package("matrixStats")
 ```
 
 **ARKA: To calculate `c3`, couldn't you do `sum(colSums(log(dip)))` instead?  Or for that matter even simpler: `sum(log(dip))`?  If yes, then it seems you don't need to depend on the `matrixStats` package.**
@@ -641,9 +693,18 @@ usethis::use_package("geometry")
 
 **ARKA: Please explain here why `du` is set to 0 at the start and end of this function.  This relates to the `try`, which should also be explained.**
 
+Due to numerical instability, in rare cases, this numerical integration based approximation of p-value (`du` in the code) may produce an invalid estimates (`NA`). We force `selective_p_val_integrate()` to return $0$ in these cases and use the Monte Carlo simulation based approximation in `selective_p_val_MC()` instead. For more details please refer to `selective_p_val()`. Below we describe the ways this numerical integration may lead to invalid results:
+
+1. The numerical integration depends on Delaunay triangulation. In very rare cases, this might fail due to boundary cases. We initialize `du` with $0$ and catch the failure in obtaining Delaunay triangulation with `try()`. We only proceed with the numerical integration, if the Delaunay triangulation is successful. This ensures that we return $0$ when the triangulation fails. 
+
+2. Due to numerical instability, the integral in the denominator might turn out to be very close to $0$ (neglible with respect to default machine precision), especially when the true value fo the denominator is very small. In those cases to avoid returning `NA`, we force `du` to be $0$.
+
+
 **ARKA: Please add some comments to the function below.**
 
 **ARKA: Why is alpha needed in the code below?  Won't it cancel when we take the ratio?**
+
+Since we consider the ratio of sum of the integrals, the constant part (`alpha` in the code)  cancels out from both the numerator and demnominator. We keep the `alpha` in the code to ensure that the integral in the denominator doesn't become oo small, especially when the true value of the denominator is very small. 
 
 ```{r}
 #' Compute selective p-value using numerical integration
@@ -659,36 +720,36 @@ selective_p_val_integrate <- function(n, L, g, test_hyp) {
   p2 <- nrow(test_hyp$S22)
   p <- p1 + p2
 
-  du <- 0
-  P <- rcdd::makeH(L, g, x = NULL)
-  PV_d <- rcdd::scdd(P)
+  du <- 0 # initialize du
+  P <- rcdd::makeH(L, g, x = NULL) # create the H representation of the polytope
+  PV_d <- rcdd::scdd(P) # compute the convex hull represenation of the polytope.
   V_d <- as.matrix(PV_d$output[,-c(1, 2)])
-  Pi <- volesti::Vpolytope(V = V_d)
-  triang = try(geometry::delaunayn(Pi@V), silent = TRUE)
-  if (!inherits(triang, 'try-error')) {
+  Pi <- volesti::Vpolytope(V = V_d) # create a convenient V representation from the convex hull. 
+  triang = try(geometry::delaunayn(Pi@V), silent = TRUE) # try the Delaunay triangulation
+  if (!inherits(triang, 'try-error')) { # if the triangulation is successful
     prod_res <- 1
     for (i in 1:p2) {
       prod_res <-
         prod_res * gamma((n - i) / 2) / (gamma((n - p2 -  i) / 2) * gamma((p1 - i + 1) /
                                                                             2) * gamma((p2 - i + 1) / 2))
     }
-    alpha <- log(pi ^ (p2 / 2) * 2 ^ p *  prod_res)
+    alpha <- log(pi ^ (p2 / 2) * 2 ^ p *  prod_res) # compute the constant
     f_tot <- function(x) {
       dt <- dCCA(n, p, p2, alpha, x)
-      return(c(dt, dt * (prod(1 - x ^ 2) <= test_hyp$statistic)))
+      return(c(dt, dt * (prod(1 - x ^ 2) <= test_hyp$statistic))) # compute the function in the numerator
     }
-    part_int <- function(i, Pi, triang, f_tot) {
+    part_int <- function(i, Pi, triang, f_tot) { #code to perform integration
       if (stats::var(round(Pi@V[triang[i, ],][, 1], 5)) == 0) {
         Pi@V[triang[i, ],][, 1][length(Pi@V[triang[i, ],][, 1])] <-
-          Pi@V[triang[i, ], ][, 1][length(Pi@V[triang[i, ],][, 1])] * (1 - 10 ^ (-5))
+          Pi@V[triang[i, ], ][, 1][length(Pi@V[triang[i, ],][, 1])] * (1 - 10 ^ (-5)) # Account for numerical instabilities on the triangulation by adding negligble deviation
       }
-      return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i, ],]), fDim = 2)$integral)
+      return(SimplicialCubature::adaptIntegrateSimplex(f_tot, t(Pi@V[triang[i, ],]), fDim = 2)$integral) # perform numerical integration on the simplices
     }
     par_I_tot_list <-
       future.apply::future_sapply(1:nrow(triang), part_int, Pi, triang, f_tot, future.seed =
                                     TRUE)
     du <- sum(par_I_tot_list[2, ]) / sum(par_I_tot_list[1, ])
-    if (sum(par_I_tot_list[1, ]) == 0) {
+    if (sum(par_I_tot_list[1, ]) == 0) { # if the integral in the denominator is effectively zero, set du to 0.
       du <- 0
     }
   }
@@ -772,28 +833,66 @@ Next, we demonstrate an example use of the `selective_p_val()`:
 
 ```{r}
 # Simulates a 10 x 5 \eqn{X_1} from \eqn{N(0, I)}
-set.seed(1)
-X <- matrix(rnorm(50), 10, 5)
-
+set.seed(4)
+X <- matrix(rnorm(600), 30, 20)
 # Compute the correlation matrix of X.
 corX <- cor(X)
 # Use 'block_diag()' to obtain any block diagonal structure
-block_diag_structure <- block_diag(corX, c= 0.5)
-# test for independence of the variables in group 1 with the remaining variables
-selective_p_val(S=cov(X), CP=block_diag_structure, k=1, n=10, c=0.5, d0=5, mc_iter=100)
+block_diag_structure <- block_diag(corX, c=0.3)
+# test for independence of the variables in group 3 with the remaining variables
+set.seed(1)
+selective_p_val(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5, mc_iter=100)
 ```
 
 We also add a code to test the function `selective_p_val()`:
 
 ```{r}
 testthat::test_that("selective_p_val() works", {
-  set.seed(1)
-  X <- matrix(rnorm(50), 10, 5)
+  set.seed(4)
+  X <- matrix(rnorm(600), 30, 20)
   corX <- cor(cbind(X))
-  block_diag_structure <- block_diag(corX, c= 0.5)
-  testthat::expect_equal(round(selective_p_val(S=cov(X), n=10, CP=block_diag_structure, c=0.5, k=1, d0=5, mc_iter=100),2), 0.27)
+  block_diag_structure <- block_diag(corX, c=0.3)
+  # Testing for r=1. 
+  testthat::expect_equal(round(selective_p_val(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5, mc_iter=100),2), 0.81)
+  # Testing for small r. 
+  testthat::expect_equal(round(selective_p_val(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=5, mc_iter=100),2), 0.15)
+  # Testing for large r. 
+  set.seed(1)
+  testthat::expect_equal(round(selective_p_val(S=cov(X), CP=block_diag_structure, k=3, n=30, c=0.3, d0=5, mc_iter=100),2), 0.77)
 })
 ```
+
+We add a test to check if `selective_p_val_beta()` and `selective_p_val_MC()` produce identical results (within an acceptable tolerance) for $r=1$.
+```{r}
+testthat::test_that("selective_p_val_beta() and selective_p_val_MC() produce similar results", {
+set.seed(4)
+X <- matrix(rnorm(600), 30, 20)
+corX <- cor(cbind(X))
+block_diag_structure <- block_diag(corX, c=0.3)
+set.seed(1)
+p_beta <- selective_p_val(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5, mc_iter=100)
+set.seed(1)
+p_MC <- selective_p_val(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=0, mc_iter=100)
+testthat::expect_true(abs(p_beta - p_MC) < 0.1)
+})
+```
+
+
+We add a test to check if `selective_p_val_numerical()` and `selective_p_val_MC()` produce identical results (within an acceptable tolerance) for small values of $r$.
+```{r}
+testthat::test_that("selective_p_val_numerical() and selective_p_val_MC() produce similar results", {
+set.seed(4)
+X <- matrix(rnorm(600), 30, 20)
+corX <- cor(cbind(X))
+block_diag_structure <- block_diag(corX, c=0.3)
+set.seed(1)
+p_numerical <- selective_p_val(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=5, mc_iter=100)
+set.seed(1)
+p_MC <- selective_p_val(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=0, mc_iter=1000)
+testthat::expect_true(abs(p_numerical - p_MC) < 0.1)
+})
+```
+
 
 **ARKA: Please make sure your tests cover (at least) the three cases of r=1, r small, and r large.**
 

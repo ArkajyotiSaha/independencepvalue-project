@@ -16,6 +16,6 @@ dCCA <- function(n, p, rp, a, lambda){
   c2 <- ((n - p - 2)/2) * sum(log(1-lambda^2))
   dip <- matrix(1, length(lambda), length(lambda))
   dip[lower.tri(dip)] <- stats::dist(lambda^2)
-  c3 <- sum(log(matrixStats::colProds(dip)))
+  c3 <- sum(log(dip))
   return(exp(a+c1+c2+c3))
 }

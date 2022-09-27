@@ -32,7 +32,7 @@ selective_p_val <- function(S, CP, k, n, c, d0 = 5, mc_iter = 1000){
   test_hyp <- test_stat_CCA(S, CP, k)
   p1 <- nrow(test_hyp$S11)
   p2 <- nrow(test_hyp$S22)
-  if (p2 == 1) {
+  if (p2 == 1 & p2 <= d0) {
     du <- selective_p_val_beta(S, CP, k, n, c, test_hyp)
   }
   else {
@@ -48,5 +48,5 @@ selective_p_val <- function(S, CP, k, n, c, d0 = 5, mc_iter = 1000){
     }
   }
   message("ARKA: Is the c() serving some purpose in the next line?")
-  return(c(du))
+  return(du)
 }

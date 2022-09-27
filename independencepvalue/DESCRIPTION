@@ -18,9 +18,10 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1
 Imports: 
     amen,
+    collapse,
+    data.table,
     future.apply,
     geometry,
-    matrixStats,
     rcdd,
     SimplicialCubature,
     stats,
@@ -29,4 +30,4 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 LitrVersionUsed: 0.0.3
-LitrId: b1056722ceb81c11db80f3a53747e6a1
+LitrId: 6534be5b6d97a2601ab9dc43be3fff0a

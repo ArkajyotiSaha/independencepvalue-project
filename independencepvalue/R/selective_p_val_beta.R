@@ -18,6 +18,6 @@ selective_p_val_beta <- function(S, CP, k, n, c, test_hyp) {
   g_u <-
     min(1, c ^ 2 * test_hyp$statistic / max(abs(R[CP == k, CP != k])) ^ 2)
   message("ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2 in the next line?")
-  I_denom_tot <- stats::pbeta(0, g_u, min(g_u, 1 - test_hyp$statistic), (p - 3) / 2 + 1, (n - p - 2) / 2 + 1)
-  (I_denom_tot[2] - I_denom_tot[1]) / (I_denom_tot[2] - I_denom_tot[3])
+  I_denom_tot <- stats::pbeta(c(0, g_u, min(g_u, 1 - test_hyp$statistic)), (p - 1) / 2, (n - p) / 2)
+  (I_denom_tot[2] - I_denom_tot[3])/(I_denom_tot[2] - I_denom_tot[1])
 }

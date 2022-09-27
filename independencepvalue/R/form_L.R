@@ -9,22 +9,26 @@ form_L <- function(test_hyp) {
   p1 <- nrow(test_hyp$S11)
   p2 <- nrow(test_hyp$S22)
   
-  L <- matrix(0, (2 * p1 * p2 + 2 * p2), p2)
-  for (i in 1:p1) {
-    for (j in 1:p2) {
-      temp <-
-        test_hyp$left_SV[i, ] * test_hyp$right_SV[j, ] / sqrt(test_hyp$S11[i, i] *
-                                                                test_hyp$S22[j, j])
-      L[2 * ((i - 1) * p2 + j) - 1,] <- temp
-      L[2 * ((i - 1) * p2 + j),] <- -temp
-    }
+  tildeU <- diag(1/sqrt(diag(test_hyp$S11))) %*% test_hyp$left_SV
+  if(p2 > 1){
+    tildeV <- diag(1/sqrt(diag(test_hyp$S22))) %*% test_hyp$right_SV
   }
-  for (k in 1:(p2 - 1)) {
-    L[2 * p1 * p2 + k, k:(k + 1)] <- c(-1, 1)
+  if(p2 == 1){
+    tildeV <- 1/sqrt(diag(test_hyp$S22)) * test_hyp$right_SV
+  }
+  mult_list <- future.apply::future_lapply(1:p2, function(j) {res<- data.table::copy(tildeU);  as.data.frame(collapse::setop(res, "*", tildeV[j,], rowwise = T))}, future.seed = TRUE)
+  L1 <- data.table::rbindlist(mult_list)
+  ##Jacob: I couldn't find an existing code to do rowwise/elementwise matrix multiplication. there are codes to multiply the rows of matrix by a vector. This link shows a benchmarking for that using R package collapse.  https://stackoverflow.com/questions/32690849/how-to-do-elementwise-multiplication-of-big-matrix-with-vector-very-fast/65327572#65327572. This function replaces the matrix with its product. We can run a loop (maybe apply) over p2 rows and then use rbindlist.
+  L <- matrix(0, (2 * p1 * p2 + 2 * p2), p2)
+  L[1:(2 * p1 * p2),] <- as.matrix(rbind(L1, -L1))
+  if(p2 > 1){
+    index <- cbind(2 * p1 * p2 + c(1:(p2 - 1)), c(1:(p2 - 1)))
+    L[index] <- -1
+    index[,2] <- index[,2] + 1
+    L[index] <- 1
   }
   L[2 * p1 * p2 + p2, p2] <- -1
-  for (k in 1:(p2)) {
-    L[2 * p1 * p2 + p2 + k, k] <- 1
-  }
+  index <- cbind(2 * p1 * p2 + p2 + c(1:(p2)), c(1:(p2)))
+  L[index] <- 1
   return(L)
 }
