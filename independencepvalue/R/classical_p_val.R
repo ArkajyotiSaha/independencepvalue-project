@@ -30,10 +30,8 @@
 classical_p_val <- function(S, CP, k, n, mc_iter= 1000){
   test_hyp <- test_stat_CCA(S, CP, k)
   p <- nrow(S)
-  message("ARKA: Why is this next line necessary?  Doesn't test_stat_CCA() ensure that p2 = rp?")
   rp <- nrow(test_hyp$S22)
   if(rp == 1){
-    message("ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2?")
     classic_p_val <- 1 - stats::pbeta(1-test_hyp$statistic, (p - 1)/2, (n - p)/2) 
     # for r(p) = 1, we have more efficient way to compute p_value based on beta distribution.
   }

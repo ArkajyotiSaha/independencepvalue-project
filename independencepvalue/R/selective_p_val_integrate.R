@@ -14,10 +14,10 @@ selective_p_val_integrate <- function(n, L, g, test_hyp) {
   p <- p1 + p2
 
   du <- 0 # initialize du
-  P <- rcdd::makeH(L, g, x = NULL) # create the H representation of the polytope
-  PV_d <- rcdd::scdd(P) # compute the convex hull represenation of the polytope.
+  P <- rcdd::makeH(L, g, x = NULL) # create the Half space representation of the polytope
+  PV_d <- rcdd::scdd(P) # compute the convex hull representation of the polytope.
   V_d <- as.matrix(PV_d$output[,-c(1, 2)])
-  Pi <- volesti::Vpolytope(V = V_d) # create a convenient V representation from the convex hull. 
+  Pi <- volesti::Vpolytope(V = V_d) # create a convenient Vertex representation from the convex hull. 
   triang = try(geometry::delaunayn(Pi@V), silent = TRUE) # try the Delaunay triangulation
   if (!inherits(triang, 'try-error')) { # if the triangulation is successful
     prod_res <- 1

@@ -11,7 +11,7 @@
 
 <meta name="author" content="Arkajyoti Saha" />
 
-<meta name="date" content="2022-09-27" />
+<meta name="date" content="2022-09-28" />
 
 <title>Creating the independencepvalue R package</title>
 
@@ -352,7 +352,7 @@ pre code {
 
 <h1 class="title toc-ignore">Creating the <code>independencepvalue</code> R package</h1>
 <h4 class="author">Arkajyoti Saha</h4>
-<h4 class="date">September 27, 2022</h4>
+<h4 class="date">September 28, 2022</h4>
 
 </div>
 
@@ -387,7 +387,7 @@ usethis::use_mit_license(copyright_holder = &quot;A. Saha&quot;)</code></pre>
 <p><span class="math display">\[
 {\bf X}\sim N_{n\times p}(0,{\bf I}_n,{\boldsymbol\Sigma})
 \]</span></p>
-<p>This package implements tests of whether a particular block of the covariance matrix is zero or not, i.e.</p>
+<p>Given a relization <span class="math inline">\({\bf x}\)</span> of <span class="math inline">\({\bf X}\)</span>, this package implements tests of whether a particular block of the covariance matrix is zero or not, i.e.</p>
 <p><span class="math display">\[
 H_0^{\mathcal P}:{\boldsymbol\Sigma}_{{\mathcal P},{\mathcal P}^c}={\bf 0}~~\text{versus}~~H_1^{\mathcal P}:{\boldsymbol\Sigma}_{{\mathcal P},{\mathcal P}^c}\neq{\bf 0}.
 \]</span> There are three main parts to the code in this package:</p>
@@ -395,7 +395,7 @@ H_0^{\mathcal P}:{\boldsymbol\Sigma}_{{\mathcal P},{\mathcal P}^c}={\bf 0}~~\tex
 <li><p><a href="#pre-specified">P-values in the case of pre-specified groups:</a> We compute the p-value under the classical context in which <span class="math inline">\({\mathcal P}\)</span> is assumed to be pre-specified (i.e., not selected based on the data used for testing). While this is not the focus of the package, some users may find this useful, and it will also be useful in the third part.</p></li>
 <li><p><a href="#partition">Partitioning variables into groups:</a> Here we implement a straightforward partitioning strategy based on thresholding the correlation matrix.</p></li>
 <li><p><a href="#selective">P-values in the case of selected groups:</a> This is the heart of the package. It computes p-values in the case that <span class="math inline">\({\mathcal P}\)</span> is the result of the partitioning implemented in part 2. Since in this case the group of variables is data-dependent, we write our tested hypothesis as <span class="math display">\[
-H_0^{\hat{\mathcal P}(X)}:{\boldsymbol\Sigma}_{\hat{\mathcal P}(X),\hat{\mathcal P}(X)^c}={\bf 0}~~\text{versus}~~H_1^{\hat{\mathcal P}(X)}:{\boldsymbol\Sigma}_{\hat{\mathcal P}(X),\hat{\mathcal P}(X)^c}={\bf 0}.
+H_0^{\hat{\mathcal P}({\bf x})}:{\boldsymbol\Sigma}_{\hat{\mathcal P}({\bf x}),\hat{\mathcal P}({\bf x})^c}={\bf 0}~~\text{versus}~~H_1^{\hat{\mathcal P}({\bf x})}:{\boldsymbol\Sigma}_{\hat{\mathcal P}({\bf x}),\hat{\mathcal P}({\bf x})^c}={\bf 0}.
 \]</span></p></li>
 </ol>
 </div>
@@ -411,8 +411,7 @@ usethis::use_package(&quot;future.apply&quot;)</code></pre>
 <p>First, given the group <span class="math inline">\({\mathcal P}\)</span>, we use (4)-(5) of the paper to compute the test statistic as a function of the canonical correlations as follows. First, we compute the cross-covariance matrix <span class="math inline">\(({\bf S}_{{\mathcal P},{\mathcal P}^c}^W)\)</span> of the ‘whitened’ variables.</p>
 <p><span class="math display">\[
 {\bf S}_{{\mathcal P},{\mathcal P}^c}^W = {\bf S}_{{\mathcal P},{\mathcal P}}^{-\frac{1}{2}}{\bf S}_{{\mathcal P},{\mathcal P}^c}{\bf S}_{{\mathcal P}^c,{\mathcal P}^c}^{-\frac{1}{2}}.
-\]</span> We obtain the singular value decomposition (SVD) of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}^W\)</span> as follows: <span class="math display">\[{\bf S}_{{\mathcal P},{\mathcal P}^c}^W = \hat{{\bf A}}\hat{{\boldsymbol\Lambda}}\hat{{\boldsymbol\Gamma}}^\top,\]</span> where <span class="math inline">\(\hat{{\boldsymbol\Lambda}} := \mathrm{diag}(\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r)\)</span> is the diagonal matrix of the <span class="math inline">\(r = r({\mathcal P}):=\min\{|{\mathcal P}|,|{\mathcal P}^c|\}\)</span> singular values of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}^W\)</span> and <span class="math inline">\(\hat{{\bf A}}\)</span> and <span class="math inline">\(\hat{{\boldsymbol\Gamma}}\)</span> are the left and right singular vectors of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}^W\)</span>, respectively. <span class="math inline">\(\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r\)</span> can be interpreted as the canonical correlations between the variables in <span class="math inline">\({\mathcal P}\)</span> and <span class="math inline">\({\mathcal P}^c\)</span>. The test statistics is given by <span class="math inline">\(\prod_{i = 1}^r (1 - \hat{\lambda_i}^2)\)</span>. To compute this, we define a function that given a covariance matrix <span class="math inline">\({\bf S}\)</span> and a group <span class="math inline">\({\mathcal P}\)</span>, computes and returns the test statistic along with <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}}\)</span>, <span class="math inline">\({\bf S}_{{\mathcal P}^c,{\mathcal P}^c}\)</span>, the left and right singular vectors of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}\)</span>, i.e. <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}}^{\frac{1}{2}}\hat{{\bf A}}\)</span> and <span class="math inline">\({\bf S}_{{\mathcal P}^c,{\mathcal P}^c}^{\frac{1}{2}}\hat{{\boldsymbol\Gamma}}\)</span>, since we will be using these information <a href="#selective">when testing in the selective context</a>. As the test statistic is identical with <span class="math inline">\({\mathcal P}\)</span> and <span class="math inline">\({\mathcal P}^c\)</span> interchanged, this function will swap <span class="math inline">\({\mathcal P}\)</span> and <span class="math inline">\({\mathcal P}^c\)</span> if needed to ensure that <span class="math inline">\(|{\mathcal P}|\ge p/2\)</span>.</p>
-<p><strong>ARKA: Please tie your explanation more closely to what the function is actually doing (in terms of the definitions of <code>S11</code> as either <span class="math inline">\({\mathcal P}\)</span> or <span class="math inline">\({\mathcal P}^C\)</span> depending on the size of <span class="math inline">\(|{\mathcal P}|\)</span>. In particular, you might say something like this: Since the test statistic is identical with <span class="math inline">\({\mathcal P}\)</span> and <span class="math inline">\({\mathcal P}^C\)</span> interchanged, this function will swap <span class="math inline">\({\mathcal P}\)</span> and <span class="math inline">\({\mathcal P}^C\)</span> if needed to ensure that <span class="math inline">\(|{\mathcal P}|\ge p/2\)</span>.</strong></p>
+\]</span> We obtain the singular value decomposition (SVD) of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}^W\)</span> as follows: <span class="math display">\[{\bf S}_{{\mathcal P},{\mathcal P}^c}^W = \hat{{\bf A}}\hat{{\boldsymbol\Lambda}}\hat{{\boldsymbol\Gamma}}^\top,\]</span> where <span class="math inline">\(\hat{{\boldsymbol\Lambda}} := \mathrm{diag}(\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r)\)</span> is the diagonal matrix of the <span class="math inline">\(r = r({\mathcal P}):=\min\{|{\mathcal P}|,|{\mathcal P}^c|\}\)</span> singular values of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}^W\)</span> and <span class="math inline">\(\hat{{\bf A}}\)</span> and <span class="math inline">\(\hat{{\boldsymbol\Gamma}}\)</span> are the left and right canonical vectors of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}^W\)</span>, respectively. <span class="math inline">\(\hat{\lambda}_1, \hat{\lambda}_2, \ldots, \hat{\lambda}_r\)</span> can be interpreted as the canonical correlations between the variables in <span class="math inline">\({\mathcal P}\)</span> and <span class="math inline">\({\mathcal P}^c\)</span>. The test statistics is given by <span class="math inline">\(\prod_{i = 1}^r (1 - \hat{\lambda_i}^2)\)</span>. To compute this, we define a function that given a covariance matrix <span class="math inline">\({\bf S}\)</span> and a group <span class="math inline">\({\mathcal P}\)</span>, computes and returns the test statistic along with <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}}\)</span>, <span class="math inline">\({\bf S}_{{\mathcal P}^c,{\mathcal P}^c}\)</span>, the left and right singular vectors of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}\)</span>, i.e. <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}}^{\frac{1}{2}}\hat{{\bf A}}\)</span> and <span class="math inline">\({\bf S}_{{\mathcal P}^c,{\mathcal P}^c}^{\frac{1}{2}}\hat{{\boldsymbol\Gamma}}\)</span>, since we will be using these information <a href="#selective">when testing in the selective context</a>. As the test statistic is identical with <span class="math inline">\({\mathcal P}\)</span> and <span class="math inline">\({\mathcal P}^c\)</span> interchanged, this function will swap <span class="math inline">\({\mathcal P}\)</span> and <span class="math inline">\({\mathcal P}^c\)</span> if needed to ensure that <span class="math inline">\(|{\mathcal P}|\ge p/2\)</span>. This ensures that <span class="math inline">\(|{\mathcal P}| \ge |{\mathcal P}|^c\)</span>. Since <span class="math inline">\(r =\min\{|{\mathcal P}|,|{\mathcal P}^c|\}\)</span>, this code ensures that <span class="math inline">\(r=|{\mathcal P}^c|\)</span>. Moreover, for the remainder of the document, we denote <span class="math inline">\(p_1:=|{\mathcal P}|\)</span> and <span class="math inline">\(p_2 := |{\mathcal P}^c| = p - p_1\)</span>.</p>
 <pre class="r"><code>#' Compute the test statistic as a function of canonical correlations. 
 #' 
 #' Given a sample covariance matrix \eqn{S} and a group of variables \eqn{P}, first
@@ -593,10 +592,8 @@ abline(0, 1)</code></pre>
 <span id='classical_p_val'>classical_p_val</span> &lt;- function(S, CP, k, n, mc_iter= 1000){
   test_hyp &lt;- <a href='#test_stat_CCA'>test_stat_CCA</a>(S, CP, k)
   p &lt;- nrow(S)
-  message(&quot;ARKA: Why is this next line necessary?  Doesn't <a href='#test_stat_CCA'>test_stat_CCA</a>() ensure that p2 = rp?&quot;)
   rp &lt;- nrow(test_hyp$S22)
   if(rp == 1){
-    message(&quot;ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2?&quot;)
     classic_p_val &lt;- 1 - stats::pbeta(1-test_hyp$statistic, (p - 1)/2, (n - p)/2) 
     # for r(p) = 1, we have more efficient way to compute p_value based on beta distribution.
   }
@@ -618,46 +615,37 @@ X_2 &lt;- matrix(rnorm(20), 10, 2)
 # Compute the covariance matrix of \eqn{X} = (\eqn{X_1} \eqn{X_2}).
 covX &lt;- cov(cbind(X_1, X_2))
 # tests for a difference in means between \eqn{X_1} and \eqn{X_2}
-<a href='#classical_p_val'>classical_p_val</a>(S=covX, n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100)</code></pre>
-<pre><code>## ARKA: Why is this next line necessary?  Doesn't <a href='#test_stat_CCA'>test_stat_CCA</a>() ensure that p2 = rp?</code></pre>
+<a href='#classical_p_val'>classical_p_val</a>(S=covX, CP=rep(1:2, times=c(3, 2)), k=1, n=10, mc_iter=100)</code></pre>
 <pre><code>## [1] 0.08</code></pre>
 <p>We also add a test of the function <code><a href='#classical_p_val'>classical_p_val</a>()</code>:</p>
 <pre class="r"><code>testthat::test_that(&quot;<a href='#classical_p_val'>classical_p_val</a>() works&quot;, {
-  set.seed(1)
-  X &lt;- matrix(rnorm(50), 10, 5)
-  testthat::expect_equal(
-    <a href='#classical_p_val'>classical_p_val</a>(S=cov(X), n=10, CP=rep(1:2, times=c(3, 2)), k=1, mc_iter=100),
-    0.83)
-  set.seed(1)
-  X &lt;- matrix(rnorm(50), 10, 5)
-  # testing group 2 should give identical results:
-  testthat::expect_equal(
-    <a href='#classical_p_val'>classical_p_val</a>(S=cov(X), n=10, CP=rep(1:2, times=c(3, 2)), k=2, mc_iter=100),
-    0.83)
+  nsim &lt;- 1e3
+  <span id='simulation_classical'>simulation_classical</span> &lt;- function(i){
+    set.seed(i)
+    X &lt;- matrix(rnorm(50), 10, 5)
+    return(<a href='#classical_p_val'>classical_p_val</a>(S=cov(X), CP=rep(1:2, times=c(3, 2)), k=1, n=10, mc_iter=100))
+  }
+  classical_pval &lt;- future.apply::future_sapply(1:nsim, simulation_classical, future.seed = TRUE)
+  probs &lt;- seq(0.05, 0.95, length = 10)
+  qw &lt;- quantile(classical_pval, probs = probs)
+  testthat::expect_true(all(abs(qw - probs) &lt; 0.025) )
 })</code></pre>
-<pre><code>## ARKA: Why is this next line necessary?  Doesn't <a href='#test_stat_CCA'>test_stat_CCA</a>() ensure that p2 = rp?
-## ARKA: Why is this next line necessary?  Doesn't <a href='#test_stat_CCA'>test_stat_CCA</a>() ensure that p2 = rp?</code></pre>
-<pre><code>## Test passed 😀</code></pre>
+<pre><code>## Test passed 🥇</code></pre>
 <p><strong>ARKA: Please add a test of the <code>rp==1</code> case to ensure that this part of the code works as well.</strong></p>
 <p>We add an additional test to check if the function <code><a href='#classical_p_val'>classical_p_val</a>()</code> works in the case of <span class="math inline">\(r=1\)</span>.</p>
-<pre class="r"><code>testthat::test_that(&quot;<a href='#classical_p_val'>classical_p_val</a>() works for $r=1$&quot;, {
-  set.seed(1)
-  X &lt;- matrix(rnorm(50), 10, 5)
-  testthat::expect_equal(
-    round(<a href='#classical_p_val'>classical_p_val</a>(S=cov(X), n=10, CP=rep(1:2, times=c(1, 4)), k=1, mc_iter=100),2),
-    0.31)
-  set.seed(1)
-  X &lt;- matrix(rnorm(50), 10, 5)
-  # testing group 2 should give identical results:
-  testthat::expect_equal(
-    round(<a href='#classical_p_val'>classical_p_val</a>(S=cov(X), n=10, CP=rep(1:2, times=c(1, 4)), k=2, mc_iter=100),2),
-    0.31)
+<pre class="r"><code>testthat::test_that(&quot;<a href='#classical_p_val'>classical_p_val</a>() works for r=1&quot;, {
+  nsim &lt;- 2e3
+  <span id='simulation_classical'>simulation_classical</span> &lt;- function(i){
+    set.seed(i)
+    X &lt;- matrix(rnorm(50), 10, 5)
+    return(<a href='#classical_p_val'>classical_p_val</a>(S=cov(X), CP=rep(1:2, times=c(1, 4)), k=1, n=10, mc_iter=100))
+  }
+  classical_pval &lt;- future.apply::future_sapply(1:nsim, simulation_classical, future.seed = TRUE)
+  probs &lt;- seq(0.05, 0.95, length = 10)
+  qw &lt;- quantile(classical_pval, probs = probs)
+  testthat::expect_true(all(abs(qw - probs) &lt; 0.025) )
 })</code></pre>
-<pre><code>## ARKA: Why is this next line necessary?  Doesn't <a href='#test_stat_CCA'>test_stat_CCA</a>() ensure that p2 = rp?</code></pre>
-<pre><code>## ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2?</code></pre>
-<pre><code>## ARKA: Why is this next line necessary?  Doesn't <a href='#test_stat_CCA'>test_stat_CCA</a>() ensure that p2 = rp?</code></pre>
-<pre><code>## ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2?</code></pre>
-<pre><code>## Test passed 🌈</code></pre>
+<pre><code>## Test passed 🎉</code></pre>
 </div>
 <div id="partition" class="section level3">
 <h3>How we partition variables into groups</h3>
@@ -706,7 +694,7 @@ p({\bf x},\hat{\mathcal P})=\mathbb P(T(\boldsymbol\lambda)\le T(\hat{\boldsymbo
 <li><p>When <span class="math inline">\(r\)</span> is large: We use a Monte Carlo approximation.</p></li>
 </ol>
 <p>Our main function for computing the selective p-value first computes the test and some other useful information by calling the function <code><a href='#test_stat_CCA'>test_stat_CCA</a>()</code> and then decides which of the three tests should be performed.</p>
-<p>When <span class="math inline">\(r &gt; 1\)</span> &amp; <span class="math inline">\(r\)</span> is small (i.e. in 2.), in rare cases, the numerical integration might produce a invalid (<code>NA</code> or outside <span class="math inline">\((0,1)\)</span>) approximation of the p-value (please refer to <code><a href='#selective_p_val_integrate'>selective_p_val_integrate</a>()</code> for more details on this). We approximate the p-values using Monte Carlo approximation in these cases. In the code, we set the approximate p-value lying outside <span class="math inline">\((0,1)\)</span> as a condition to use Monte Carlo approximation and initialise estimate of the p-value (<code>du</code> in the code) to <code>0</code>so that this condition is satisfied by default in case <span class="math inline">\(r\)</span> is large, i.e. larger that <code>d0</code> in the code.</p>
+<p>When <span class="math inline">\(r &gt; 1\)</span> &amp; <span class="math inline">\(r\)</span> is small (i.e. in 2.), in rare cases, the numerical integration might produce a invalid (outside <span class="math inline">\((0,1)\)</span>) approximation of the p-value (<code>du</code> in the code, please refer to <code><a href='#selective_p_val_integrate'>selective_p_val_integrate</a>()</code> for more details on this). If <code>du</code> lies outside <span class="math inline">\((0,1)\)</span>, we approximate the p-values using Monte Carlo approximation in these cases. We initialize <code>du</code> with <span class="math inline">\(0\)</span>, so <span class="math inline">\(du\)</span> lies outside <span class="math inline">\((0,1)\)</span> by default.</p>
 <p><strong>ARKA: Add here an explanation of why <code>du</code> is set to 0 and relatedly why you check whether <code>du&lt;=0</code>.</strong></p>
 <pre class="r"><code>#' Test independence of a data-dependent group of variables with the rest
 #'
@@ -755,7 +743,6 @@ p({\bf x},\hat{\mathcal P})=\mathbb P(T(\boldsymbol\lambda)\le T(\hat{\boldsymbo
       du &lt;- <a href='#selective_p_val_MC'>selective_p_val_MC</a>(n, L, g, test_hyp, mc_iter)
     }
   }
-  message(&quot;ARKA: Is the c() serving some purpose in the next line?&quot;)
   return(du)
 }</code></pre>
 <p>We describe the functions <code><a href='#selective_p_val_beta'>selective_p_val_beta</a>()</code>, <code><a href='#selective_p_val_integrate'>selective_p_val_integrate</a>()</code>, and <code><a href='#selective_p_val_MC'>selective_p_val_MC</a>()</code> in the next two subsections.</p>
@@ -783,8 +770,7 @@ g_u\left({\bf S}\left( {\bf x}\right), \hat{\mathcal P}, c\right) := \min \left\
   diag_S &lt;- diag(1 / sqrt(diag(S)))
   R &lt;- diag_S %*% S %*% diag_S
   g_u &lt;-
-    min(1, c ^ 2 * test_hyp$statistic / max(abs(R[CP == k, CP != k])) ^ 2)
-  message(&quot;ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2 in the next line?&quot;)
+    min(1, c ^ 2 * (1 - test_hyp$statistic) / max(abs(R[CP == k, CP != k])) ^ 2)
   I_denom_tot &lt;- stats::pbeta(c(0, g_u, min(g_u, 1 - test_hyp$statistic)), (p - 1) / 2, (n - p) / 2)
   (I_denom_tot[2] - I_denom_tot[3])/(I_denom_tot[2] - I_denom_tot[1])
 }</code></pre>
@@ -797,7 +783,6 @@ p({\bf x},\hat{\mathcal P})=\mathbb P(T(\boldsymbol\lambda)\le T(\hat{\boldsymbo
 \]</span></p>
 <p>where <span class="math inline">\(T(\cdot)\)</span> is the test statistic, <span class="math inline">\(\boldsymbol\lambda\sim f\)</span> from Proposition 1(i), and <span class="math inline">\({\bf L}\)</span> and <span class="math inline">\({\bf g}\)</span> depend on <span class="math inline">\({\bf x}\)</span>, <span class="math inline">\(\hat{\mathcal P}\)</span>, and <span class="math inline">\(c\)</span> (the particular functional forms of these will be given below).</p>
 <p>The functions <code><a href='#selective_p_val_integrate'>selective_p_val_integrate</a>()</code> and <code><a href='#selective_p_val_MC'>selective_p_val_MC</a>()</code> both make use of this fact, so <code><a href='#selective_p_val'>selective_p_val</a>()</code> computes <span class="math inline">\(L\)</span> and <span class="math inline">\(g\)</span> before calling either function.</p>
-<p><strong>ARKA: Please include here in latex the details of how one can go from what’s shown in Section S5 and S6 to the <span class="math inline">\(L\)</span> you are constructing in the code.</strong></p>
 <p>Next, we elaborate how we can derive the <span class="math inline">\({\bf L}\)</span> and <span class="math inline">\({\bf g}\)</span> used in the code, from the Supplementary Section S5 and S6 in the Supplementary Material of the article. From S6, we have for any <span class="math inline">\(\left\{\lambda_i\right\}_{i= 1}^{r}\)</span>, with <span class="math inline">\(1 \ge \lambda_1 \geqslant \lambda_2 \geqslant \ldots \geqslant \lambda_{r} \ge 0\)</span>, in order to recover <span class="math inline">\(\hat{\mathcal P}\)</span>, with a threshold <span class="math inline">\(c\)</span> in <code><a href='#block_diag'>block_diag</a>()</code> we need,</p>
 <p><span class="math display">\[\begin{equation}
 \tag{*}
@@ -805,18 +790,18 @@ p({\bf x},\hat{\mathcal P})=\mathbb P(T(\boldsymbol\lambda)\le T(\hat{\boldsymbo
 \mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) \\
 -\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)
 \end{pmatrix} \leqslant c \mathbf{1}_{2\mathrm{card}\left(\hat{\mathcal P}\right)} \mathbf 1^\top_{\left( p - \mathrm{card}\left(\hat{\mathcal P}\right)\right)},
-\end{equation}\]</span> where <span class="math inline">\(\mathbf{R}\left( \mathbf S\right)\)</span> denotes the correlation matrix corresponding to the covariance matrix <span class="math inline">\({\bf S}\)</span> and <span class="math inline">\(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\)</span> is a modified sample covariance matrix with the perturbed off-diagonal blocks given by</p>
+\end{equation}\]</span> where <span class="math inline">\(\mathbf{R}\left( \mathbf S\right)\)</span> denotes the correlation matrix corresponding to the covariance matrix <span class="math inline">\({\bf S}\)</span>, and <span class="math inline">\(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\)</span> is a modified sample covariance matrix with the perturbed off-diagonal blocks given by</p>
 <p><span class="math display">\[\begin{equation}
 \tag{**}
 \mathbf S_{\hat{\mathcal{P}},\hat{\mathcal{P}}^c}'\left(\mathbf x, {\hat{\mathcal{P}}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right) := \mathbf U \left(\mathbf x\right) \mathrm{diag}\left(\lambda_1, \lambda_2, \ldots, \lambda_{r\left({\mathcal{R}}\right)}\right) \mathbf V \left(\mathbf x\right)^\top,
 \end{equation}\]</span></p>
-<p>where, <span class="math inline">\(\mathbf U \left(\mathbf x\right)\)</span> and <span class="math inline">\(\mathbf V \left(\mathbf x\right)\)</span> are the left and right singular vectors of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}\left(\mathbf x\right)\)</span>, i.e. <span class="math inline">\(\mathbf U \left(\mathbf x\right) = \left({\bf S}_{{\mathcal P},{\mathcal P}}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{{\bf A}\left(\mathbf x\right)}\)</span> and <span class="math inline">\(\mathbf V \left(\mathbf x\right) = \left({\bf S}_{{\mathcal P}^c,{\mathcal P}^c}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{{\boldsymbol\Gamma}}\left(\mathbf x\right)\)</span> respectively. We obtain <span class="math inline">\(\mathbf U \left(\mathbf x\right)\)</span> and <span class="math inline">\(\mathbf V \left(\mathbf x\right)\)</span> directly from output of <code><a href='#test_stat_CCA'>test_stat_CCA</a>()</code> (<code>left_SV</code> and <code>right_SV</code> respectively). Using the dervation in S5, we have, <span class="math display">\[\begin{equation}
+<p>where, <span class="math inline">\(\mathbf U \left(\mathbf x\right)\)</span> and <span class="math inline">\(\mathbf V \left(\mathbf x\right)\)</span> are the left and right singular vectors of <span class="math inline">\({\bf S}_{{\mathcal P},{\mathcal P}^c}\left(\mathbf x\right)\)</span> respectively, i.e. <span class="math inline">\(\mathbf U \left(\mathbf x\right) = \left({\bf S}_{{\mathcal P},{\mathcal P}}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{{\bf A}}\left(\mathbf x\right)\)</span> and <span class="math inline">\(\mathbf V \left(\mathbf x\right) = \left({\bf S}_{{\mathcal P}^c,{\mathcal P}^c}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{{\boldsymbol\Gamma}}\left(\mathbf x\right)\)</span>. We obtain <span class="math inline">\(\mathbf U \left(\mathbf x\right)\)</span> and <span class="math inline">\(\mathbf V \left(\mathbf x\right)\)</span> directly from output of <code><a href='#test_stat_CCA'>test_stat_CCA</a>()</code> (<code>left_SV</code> and <code>right_SV</code>). Using the dervation in S5, we have, <span class="math display">\[\begin{equation}
 \tag{***}
 \mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}, \hat{\mathcal{P}}}'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)^{-\frac{1}{2}}\mathbf S_{\hat{\mathcal{P}},\hat{\mathcal{P}}^c}'\left(\mathbf x, {\hat{\mathcal{P}}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}^c, \hat{\mathcal{P}}^c}'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)^{-\frac{1}{2}}.
-\end{equation}\]</span> Since <span class="math inline">\(\mathbf S'\)</span> only perturbs the off-diagonal component of <span class="math inline">\({\bf S}\left( \mathbf x\right)\)</span>, we have <span class="math inline">\(\mathrm{diag}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) = \mathrm{diag}\left(\mathbf S\left(\mathbf x\right)\right)\)</span>. Combining this with <a href="#eq:perturb">(**)</a> and <a href="#eq:correlation">(***)</a> we have:</p>
+\end{equation}\]</span> Since <span class="math inline">\(\mathbf S'\)</span> only perturbs the off-diagonal component of <span class="math inline">\({\bf S}\left( \mathbf x\right)\)</span>, we have <span class="math inline">\(\mathrm{diag}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) = \mathrm{diag}\left(\mathbf S\left(\mathbf x\right)\right)\)</span>. Combining this with <span class="math inline">\((**)\)</span> and <span class="math inline">\((***)\)</span> we have:</p>
 <p><span class="math display">\[
 \mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right) = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}, \hat{\mathcal{P}}}\left(\mathbf x\right)\right)^{-\frac{1}{2}}\mathbf U \left(\mathbf x\right) \mathrm{diag}\left(\lambda_1, \lambda_2, \ldots, \lambda_{r}\right) \mathbf V \left(\mathbf x\right)^\top \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}^c, \hat{\mathcal{P}}^c}\left(\mathbf x\right)\right)^{-\frac{1}{2}}=\left( \left( \tilde{\mathbf U }_{i,}\odot\tilde{\mathbf V }_{j,}\boldsymbol\lambda\right) \right)_{i,j},
-\]</span> where <span class="math inline">\(\tilde{\mathbf U } = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}, \hat{\mathcal{P}}}\left(\mathbf x\right)\right)^{-\frac{1}{2}}\mathbf U \left(\mathbf x\right)\)</span>, <span class="math inline">\(\tilde{\mathbf V } = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}^c, \hat{\mathcal{P}}^c}\left(\mathbf x\right)\right)^{-\frac{1}{2}}\mathbf V \left(\mathbf x\right)\)</span>, <span class="math inline">\(\boldsymbol\lambda= \left(\lambda_1, \lambda_2, \ldots, \lambda_{r}\right)\)</span>, and <span class="math inline">\(\mathbf a \odot \mathbf b\)</span> denotes the elementzise product of the vectors <span class="math inline">\(\mathbf a\)</span> and <span class="math inline">\(\mathbf b\)</span>. Hence elementwise product of the rows of <span class="math inline">\(\tilde{\mathbf U }\)</span> and <span class="math inline">\(\tilde{\mathbf V }\)</span> makes up the first <span class="math inline">\(p_1p_2\)</span> rows of <span class="math inline">\({\bf L}\)</span> correspodning to the inequalities associated with <span class="math inline">\(\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)\)</span>. We append these <span class="math inline">\(p_1p_2\)</span> rows to <span class="math inline">\({\bf L}\)</span> with their signs reversed to account for the inequality corresponding to <span class="math inline">\(-\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)\)</span>. The remaining rows of <span class="math inline">\({\bf L}\)</span> account for the inequalities originating from <span class="math inline">\(1 \ge \lambda_1 \geqslant \lambda_2 \geqslant \ldots \geqslant \lambda_{r} \ge 0\)</span>.</p>
+\]</span> where <span class="math inline">\(\tilde{\mathbf U } = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}, \hat{\mathcal{P}}}\left(\mathbf x\right)\right)^{-\frac{1}{2}}\mathbf U \left(\mathbf x\right)\)</span>, <span class="math inline">\(\tilde{\mathbf V } = \mathrm{diag}\left(\mathbf S_{\hat{\mathcal{P}}^c, \hat{\mathcal{P}}^c}\left(\mathbf x\right)\right)^{-\frac{1}{2}}\mathbf V \left(\mathbf x\right)\)</span>, <span class="math inline">\(\boldsymbol\lambda= \left(\lambda_1, \lambda_2, \ldots, \lambda_{r}\right)\)</span>, and <span class="math inline">\(\mathbf a \odot \mathbf b\)</span> denotes the elementzise product of the vectors <span class="math inline">\(\mathbf a\)</span> and <span class="math inline">\(\mathbf b\)</span>. Hence elementwise product of the rows of <span class="math inline">\(\tilde{\mathbf U }\)</span> and <span class="math inline">\(\tilde{\mathbf V }\)</span> makes up the first <span class="math inline">\(p_1p_2\)</span> rows of <span class="math inline">\({\bf L}\)</span> correspodning to the inequalities associated with <span class="math inline">\(\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)\)</span> in <span class="math inline">\((*)\)</span>. We append these <span class="math inline">\(p_1p_2\)</span> rows to <span class="math inline">\({\bf L}\)</span> with their signs reversed to account for the inequality corresponding to <span class="math inline">\(-\mathbf{R}_{\hat{\mathcal{P}}, \hat{\mathcal{P}}^c}\left(\mathbf S'\left(\mathbf x, \hat{\mathcal{P}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right)\right)\)</span>. The remaining rows of <span class="math inline">\({\bf L}\)</span> account for the inequalities originating from <span class="math inline">\(1 \ge \lambda_1 \geqslant \lambda_2 \geqslant \ldots \geqslant \lambda_{r} \ge 0\)</span>.</p>
 <pre class="r"><code>#' Form L matrix described in Theorem 2
 #' 
 #' @param test_hyp output of `<a href='#test_stat_CCA'>test_stat_CCA</a>()`
@@ -835,7 +820,6 @@ p({\bf x},\hat{\mathcal P})=\mathbb P(T(\boldsymbol\lambda)\le T(\hat{\boldsymbo
   }
   mult_list &lt;- future.apply::future_lapply(1:p2, function(j) {res&lt;- data.table::copy(tildeU);  as.data.frame(collapse::setop(res, &quot;*&quot;, tildeV[j,], rowwise = T))}, future.seed = TRUE)
   L1 &lt;- data.table::rbindlist(mult_list)
-  ##Jacob: I couldn't find an existing code to do rowwise/elementwise matrix multiplication. there are codes to multiply the rows of matrix by a vector. This link shows a benchmarking for that using R package collapse.  https://stackoverflow.com/questions/32690849/how-to-do-elementwise-multiplication-of-big-matrix-with-vector-very-fast/65327572#65327572. This function replaces the matrix with its product. We can run a loop (maybe apply) over p2 rows and then use rbindlist.
   L &lt;- matrix(0, (2 * p1 * p2 + 2 * p2), p2)
   L[1:(2 * p1 * p2),] &lt;- as.matrix(rbind(L1, -L1))
   if(p2 &gt; 1){
@@ -852,10 +836,9 @@ p({\bf x},\hat{\mathcal P})=\mathbb P(T(\boldsymbol\lambda)\le T(\hat{\boldsymbo
 <p>We have used the function <code>collapse::setop()</code> and multiple functions from the package <code>data.table</code> in the above, so we import these packages:</p>
 <pre class="r"><code>usethis::use_package(&quot;data.table&quot;)
 usethis::use_package(&quot;collapse&quot;)</code></pre>
-<p><strong>ARKA: For loops are very slow in R whereas matrix multiplication is fast. Rather than computing <code>temp</code> for each <code>ij</code> pair, I believe it should be possible to use matrix multiplication (once) and avoid the for loops entirely. Likewise for you should be able to form the part of <code>L</code> that has <span class="math inline">\(\pm1\)</span> without for loops.</strong></p>
 <div id="numerical-integration" class="section level5">
 <h5>Numerical integration</h5>
-<p>The quantity <span class="math inline">\(p(\x,\hat{\mathcal P})\)</span> can be computed by numerical integration of the numerator and denominator of</p>
+<p>The quantity <span class="math inline">\(p({\bf x},\hat{\mathcal P})\)</span> can be computed by numerical integration of the numerator and denominator of</p>
 <p><span class="math display">\[
 \frac{\int_{\left\{{\bf L}\boldsymbol\lambda\leq {\bf g}\right\}} f\left(\boldsymbol\lambda\right)g\left(\boldsymbol\lambda\right)d\lambda_1d\lambda_2\ldots d\lambda_{r\left(\hat{\mathcal P}\right)}}{\int_{{\bf L}\boldsymbol\lambda\leq {\bf g}} f\left(\boldsymbol\lambda\right)d\lambda_1d\lambda_2\ldots d\lambda_{r\left(\hat{\mathcal P}\right)}}
 \]</span></p>
@@ -883,22 +866,18 @@ g\left(\boldsymbol\lambda\right)=1\left\{\prod_{i= 1}^{r\left(\hat{\mathcal P}\r
   c3 &lt;- sum(log(dip))
   return(exp(a+c1+c2+c3))
 }</code></pre>
-<p><strong>ARKA: To calculate <code>c3</code>, couldn’t you do <code>sum(colSums(log(dip)))</code> instead? Or for that matter even simpler: <code>sum(log(dip))</code>? If yes, then it seems you don’t need to depend on the <code>matrixStats</code> package.</strong></p>
 <p>The function <code><a href='#selective_p_val_integrate'>selective_p_val_integrate</a>()</code> relies on efficient code for performing numerical integration over simplices. In particular, it does the following: * First we compute the convex hull representation of the convex polytope <span class="math inline">\(\{\boldsymbol\lambda: {\bf L}\boldsymbol\lambda\le {\bf g}\}\)</span>. We use the R package <code>rcdd</code> to go between different representations of polytopes. * Next, we use the R package <code>volesti</code> to build the polytope from the convex hull and then compute the Delaunay triangulation of the convex hull with the package <code>geometry</code>. * Next, we integrate the functions <span class="math inline">\(f(\boldsymbol\lambda)\)</span> and <span class="math inline">\(f(\boldsymbol\lambda)g(\boldsymbol\lambda)\)</span> over the simplices obtained in the previous step using the package <code>SimplicialCubature</code> and take their sums. Here, <span class="math inline">\(f(\cdot)\)</span> is the joint density of <span class="math inline">\(\boldsymbol\lambda\)</span> (see (7) of the paper), evaluated with <code><a href='#dCCA'>dCCA</a>()</code>, up to a constant. * The ratio of these two quantities approximates the selective p-value.</p>
 <p>We start by importing these packages:</p>
 <pre class="r"><code>usethis::use_package(&quot;volesti&quot;)
 usethis::use_package(&quot;SimplicialCubature&quot;)
 usethis::use_package(&quot;rcdd&quot;)
 usethis::use_package(&quot;geometry&quot;)</code></pre>
-<p><strong>ARKA: Please explain here why <code>du</code> is set to 0 at the start and end of this function. This relates to the <code>try</code>, which should also be explained.</strong></p>
 <p>Due to numerical instability, in rare cases, this numerical integration based approximation of p-value (<code>du</code> in the code) may produce an invalid estimates (<code>NA</code>). We force <code><a href='#selective_p_val_integrate'>selective_p_val_integrate</a>()</code> to return <span class="math inline">\(0\)</span> in these cases and use the Monte Carlo simulation based approximation in <code><a href='#selective_p_val_MC'>selective_p_val_MC</a>()</code> instead. For more details please refer to <code><a href='#selective_p_val'>selective_p_val</a>()</code>. Below we describe the ways this numerical integration may lead to invalid results:</p>
 <ol style="list-style-type: decimal">
 <li><p>The numerical integration depends on Delaunay triangulation. In very rare cases, this might fail due to boundary cases. We initialize <code>du</code> with <span class="math inline">\(0\)</span> and catch the failure in obtaining Delaunay triangulation with <code>try()</code>. We only proceed with the numerical integration, if the Delaunay triangulation is successful. This ensures that we return <span class="math inline">\(0\)</span> when the triangulation fails.</p></li>
-<li><p>Due to numerical instability, the integral in the denominator might turn out to be very close to <span class="math inline">\(0\)</span> (neglible with respect to default machine precision), especially when the true value fo the denominator is very small. In those cases to avoid returning <code>NA</code>, we force <code>du</code> to be <span class="math inline">\(0\)</span>.</p></li>
+<li><p>Due to numerical instability, the integral in the denominator might turn out to be very close to <span class="math inline">\(0\)</span> (negligible with respect to default machine precision), especially when the true value of the denominator is very small. In those cases, to avoid returning <code>NA</code>, we force <code>du</code> to be <span class="math inline">\(0\)</span>.</p></li>
 </ol>
-<p><strong>ARKA: Please add some comments to the function below.</strong></p>
-<p><strong>ARKA: Why is alpha needed in the code below? Won’t it cancel when we take the ratio?</strong></p>
-<p>Since we consider the ratio of sum of the integrals, the constant part (<code>alpha</code> in the code) cancels out from both the numerator and demnominator. We keep the <code>alpha</code> in the code to ensure that the integral in the denominator doesn’t become oo small, especially when the true value of the denominator is very small.</p>
+<p>Since we consider the ratio of sum of the integrals, the constant part (<code>alpha</code> in the code) cancels out from both the numerator and denominator. We keep the <code>alpha</code> in the code to ensure that the integral in the denominator doesn’t become too small, especially when the true value of the denominator is very small.</p>
 <pre class="r"><code>#' Compute selective p-value using numerical integration
 #' 
 #' @param n sample size
@@ -913,10 +892,10 @@ usethis::use_package(&quot;geometry&quot;)</code></pre>
   p &lt;- p1 + p2
 
   du &lt;- 0 # initialize du
-  P &lt;- rcdd::makeH(L, g, x = NULL) # create the H representation of the polytope
-  PV_d &lt;- rcdd::scdd(P) # compute the convex hull represenation of the polytope.
+  P &lt;- rcdd::makeH(L, g, x = NULL) # create the Half space representation of the polytope
+  PV_d &lt;- rcdd::scdd(P) # compute the convex hull representation of the polytope.
   V_d &lt;- as.matrix(PV_d$output[,-c(1, 2)])
-  Pi &lt;- volesti::Vpolytope(V = V_d) # create a convenient V representation from the convex hull. 
+  Pi &lt;- volesti::Vpolytope(V = V_d) # create a convenient Vertex representation from the convex hull. 
   triang = try(geometry::delaunayn(Pi@V), silent = TRUE) # try the Delaunay triangulation
   if (!inherits(triang, 'try-error')) { # if the triangulation is successful
     prod_res &lt;- 1
@@ -1020,62 +999,60 @@ block_diag_structure &lt;- <a href='#block_diag'>block_diag</a>(corX, c=0.3)
 # test for independence of the variables in group 3 with the remaining variables
 set.seed(1)
 <a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5, mc_iter=100)</code></pre>
-<pre><code>## ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2 in the next line?</code></pre>
-<pre><code>## ARKA: Is the c() serving some purpose in the next line?</code></pre>
-<pre><code>## [1] 0.8091526</code></pre>
+<pre><code>## [1] 0.8236989</code></pre>
 <p>We also add a code to test the function <code><a href='#selective_p_val'>selective_p_val</a>()</code>:</p>
 <pre class="r"><code>testthat::test_that(&quot;<a href='#selective_p_val'>selective_p_val</a>() works&quot;, {
-  set.seed(4)
-  X &lt;- matrix(rnorm(600), 30, 20)
-  corX &lt;- cor(cbind(X))
-  block_diag_structure &lt;- <a href='#block_diag'>block_diag</a>(corX, c=0.3)
-  # Testing for r=1. 
-  testthat::expect_equal(round(<a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5, mc_iter=100),2), 0.81)
-  # Testing for small r. 
-  testthat::expect_equal(round(<a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=5, mc_iter=100),2), 0.15)
-  # Testing for large r. 
-  set.seed(1)
-  testthat::expect_equal(round(<a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=3, n=30, c=0.3, d0=5, mc_iter=100),2), 0.77)
+nsim &lt;- 1e3
+  <span id='simulation_selective'>simulation_selective</span> &lt;- function(i){
+    set.seed(i)
+    X &lt;- matrix(rnorm(50), 10, 5)
+    corX &lt;- cor(X)
+    block_diag_structure &lt;- <a href='#block_diag'>block_diag</a>(corX, c=0.5)
+    if(length(unique(block_diag_structure)) &gt; 1){
+      set.seed(i)
+      k0 &lt;- sample(unique(block_diag_structure), 1)
+      return(<a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=k0, n=10, c=0.5, d0=2, mc_iter=100))
+    }
+  }
+  selective_pval &lt;- sapply(1:nsim, simulation_selective)
+  probs &lt;- seq(0.05, 0.95, length = 10)
+  qw &lt;- quantile(unlist(selective_pval), probs = probs)
+  testthat::expect_true(all(abs(qw - probs) &lt; 0.025) )
 })</code></pre>
-<pre><code>## ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2 in the next line?</code></pre>
-<pre><code>## ARKA: Is the c() serving some purpose in the next line?
-## ARKA: Is the c() serving some purpose in the next line?
-## ARKA: Is the c() serving some purpose in the next line?</code></pre>
-<pre><code>## Test passed 🎊</code></pre>
+<pre><code>## Test passed 🥳</code></pre>
 <p>We add a test to check if <code><a href='#selective_p_val_beta'>selective_p_val_beta</a>()</code> and <code><a href='#selective_p_val_MC'>selective_p_val_MC</a>()</code> produce identical results (within an acceptable tolerance) for <span class="math inline">\(r=1\)</span>.</p>
 <pre class="r"><code>testthat::test_that(&quot;<a href='#selective_p_val_beta'>selective_p_val_beta</a>() and <a href='#selective_p_val_MC'>selective_p_val_MC</a>() produce similar results&quot;, {
 set.seed(4)
 X &lt;- matrix(rnorm(600), 30, 20)
 corX &lt;- cor(cbind(X))
 block_diag_structure &lt;- <a href='#block_diag'>block_diag</a>(corX, c=0.3)
+table(block_diag_structure)
+# We test group 6 as r = 1 here. Setting d0 &gt;= 1 will make <a href='#selective_p_val'>selective_p_val</a>() use <a href='#selective_p_val_beta'>selective_p_val_beta</a>() for approximation
 set.seed(1)
-p_beta &lt;- <a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5, mc_iter=100)
+p_beta &lt;- <a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5, mc_iter=1000)
 set.seed(1)
-p_MC &lt;- <a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=0, mc_iter=100)
-testthat::expect_true(abs(p_beta - p_MC) &lt; 0.1)
+# Setting d0 = 0 forces <a href='#selective_p_val'>selective_p_val</a>() to use <a href='#selective_p_val_MC'>selective_p_val_MC</a>() for approximation, even if r = 1
+p_MC &lt;- <a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=0, mc_iter=1000)
+testthat::expect_true(abs(p_beta - p_MC) &lt; 0.025)
 })</code></pre>
-<pre><code>## ARKA: Wouldn't it be simpler to write (p - 1)/2 and (n - p)/2 in the next line?</code></pre>
-<pre><code>## ARKA: Is the c() serving some purpose in the next line?
-## ARKA: Is the c() serving some purpose in the next line?</code></pre>
-<pre><code>## Test passed 🎊</code></pre>
-<p>We add a test to check if <code>selective_p_val_numerical()</code> and <code><a href='#selective_p_val_MC'>selective_p_val_MC</a>()</code> produce identical results (within an acceptable tolerance) for small values of <span class="math inline">\(r\)</span>.</p>
-<pre class="r"><code>testthat::test_that(&quot;selective_p_val_numerical() and <a href='#selective_p_val_MC'>selective_p_val_MC</a>() produce similar results&quot;, {
+<pre><code>## Test passed 🥳</code></pre>
+<p>We add a test to check if <code><a href='#selective_p_val_integrate'>selective_p_val_integrate</a>()</code> and <code><a href='#selective_p_val_MC'>selective_p_val_MC</a>()</code> produce identical results (within an acceptable tolerance) for small values of <span class="math inline">\(r\)</span>.</p>
+<pre class="r"><code>testthat::test_that(&quot;<a href='#selective_p_val_integrate'>selective_p_val_integrate</a>() and <a href='#selective_p_val_MC'>selective_p_val_MC</a>() produce similar results&quot;, {
 set.seed(4)
 X &lt;- matrix(rnorm(600), 30, 20)
 corX &lt;- cor(cbind(X))
 block_diag_structure &lt;- <a href='#block_diag'>block_diag</a>(corX, c=0.3)
+table(block_diag_structure)
+# We test group 2 as r = 2 here. Setting d0 &gt;= 2 will make <a href='#selective_p_val'>selective_p_val</a>() use <a href='#selective_p_val_integrate'>selective_p_val_integrate</a>() for approximation. 
 set.seed(1)
-p_numerical &lt;- <a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=5, mc_iter=100)
+p_integrate &lt;- <a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=5, mc_iter=1000)
 set.seed(1)
+# Setting d0 = 0 forces <a href='#selective_p_val'>selective_p_val</a>() to use <a href='#selective_p_val_MC'>selective_p_val_MC</a>() for approximation, even if r = 1
 p_MC &lt;- <a href='#selective_p_val'>selective_p_val</a>(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=0, mc_iter=1000)
-testthat::expect_true(abs(p_numerical - p_MC) &lt; 0.1)
+testthat::expect_true(abs(p_integrate - p_MC) &lt; 0.025)
 })</code></pre>
-<pre><code>## ARKA: Is the c() serving some purpose in the next line?
-## ARKA: Is the c() serving some purpose in the next line?</code></pre>
 <pre><code>## Test passed 🥳</code></pre>
 <p><strong>ARKA: Please make sure your tests cover (at least) the three cases of r=1, r small, and r large.</strong></p>
-<p><strong>ARKA: Please also add a test that verifies that <code><a href='#selective_p_val_beta'>selective_p_val_beta</a>()</code> and <code><a href='#selective_p_val_MC'>selective_p_val_MC</a>()</code> give the same answer (within an acceptable tolerance) in the r=1 case.</strong></p>
-<p><strong>ARKA: Please also add a test that verifies that <code>selective_p_val_numerical()</code> and <code><a href='#selective_p_val_MC'>selective_p_val_MC</a>()</code> give the same answer (within an acceptable tolerance) in the small r case.</strong></p>
 </div>
 </div>
 </div>

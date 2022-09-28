@@ -47,6 +47,5 @@ selective_p_val <- function(S, CP, k, n, c, d0 = 5, mc_iter = 1000){
       du <- selective_p_val_MC(n, L, g, test_hyp, mc_iter)
     }
   }
-  message("ARKA: Is the c() serving some purpose in the next line?")
   return(du)
 }
