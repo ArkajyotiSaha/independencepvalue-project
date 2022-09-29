@@ -28,6 +28,7 @@ testthat::test_that("MC_function_classical() works", {
 })
 
 testthat::test_that("classical_p_val() works", {
+  testthat::skip_on_cran()
   nsim <- 1e3
   simulation_classical <- function(i){
     set.seed(i)
@@ -41,7 +42,8 @@ testthat::test_that("classical_p_val() works", {
 })
 
 testthat::test_that("classical_p_val() works for r=1", {
-  nsim <- 2e3
+  testthat::skip_on_cran()
+  nsim <- 1e4
   simulation_classical <- function(i){
     set.seed(i)
     X <- matrix(rnorm(50), 10, 5)
@@ -50,7 +52,7 @@ testthat::test_that("classical_p_val() works for r=1", {
   classical_pval <- future.apply::future_sapply(1:nsim, simulation_classical, future.seed = TRUE)
   probs <- seq(0.05, 0.95, length = 10)
   qw <- quantile(classical_pval, probs = probs)
-  testthat::expect_true(all(abs(qw - probs) < 0.025) )
+  testthat::expect_true(all(abs(qw - probs) < 0.005) )
 })
 
 testthat::test_that("block_diag() works", {
@@ -60,14 +62,14 @@ testthat::test_that("block_diag() works", {
 })
 
 testthat::test_that("selective_p_val() works", {
-nsim <- 1e3
+  testthat::skip_on_cran()
+  nsim <- 1e3
+  set.seed(1)
   simulation_selective <- function(i){
-    set.seed(i)
     X <- matrix(rnorm(50), 10, 5)
     corX <- cor(X)
     block_diag_structure <- block_diag(corX, c=0.5)
     if(length(unique(block_diag_structure)) > 1){
-      set.seed(i)
       k0 <- sample(unique(block_diag_structure), 1)
       return(selective_p_val(S=cov(X), CP=block_diag_structure, k=k0, n=10, c=0.5, d0=2, mc_iter=100))
     }
@@ -75,36 +77,36 @@ nsim <- 1e3
   selective_pval <- sapply(1:nsim, simulation_selective)
   probs <- seq(0.05, 0.95, length = 10)
   qw <- quantile(unlist(selective_pval), probs = probs)
-  testthat::expect_true(all(abs(qw - probs) < 0.025) )
+  testthat::expect_true(all(abs(qw - probs) < 0.025))
 })
 
 testthat::test_that("selective_p_val_beta() and selective_p_val_MC() produce similar results", {
-set.seed(4)
-X <- matrix(rnorm(600), 30, 20)
-corX <- cor(cbind(X))
-block_diag_structure <- block_diag(corX, c=0.3)
-table(block_diag_structure)
-# We test group 6 as r = 1 here. Setting d0 >= 1 will make selective_p_val() use selective_p_val_beta() for approximation
-set.seed(1)
-p_beta <- selective_p_val(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5, mc_iter=1000)
-set.seed(1)
-# Setting d0 = 0 forces selective_p_val() to use selective_p_val_MC() for approximation, even if r = 1
-p_MC <- selective_p_val(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=0, mc_iter=1000)
-testthat::expect_true(abs(p_beta - p_MC) < 0.025)
+  testthat::skip_on_cran()
+  set.seed(4)
+  X <- matrix(rnorm(600), 30, 20)
+  corX <- cor(cbind(X))
+  block_diag_structure <- block_diag(corX, c=0.3)
+  table(block_diag_structure)
+  # We test group 6 as r = 1 here. Setting d0 >= 1 will make selective_p_val() use selective_p_val_beta() for approximation
+  p_beta <- selective_p_val(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=5)
+  set.seed(1)
+  # Setting d0 = 0 forces selective_p_val() to use selective_p_val_MC() for approximation, even if r = 1
+  p_MC <- selective_p_val(S=cov(X), CP=block_diag_structure, k=6, n=30, c=0.3, d0=0, mc_iter=5e4)
+  testthat::expect_true(abs(p_beta - p_MC) < 0.002)
 })
 
 testthat::test_that("selective_p_val_integrate() and selective_p_val_MC() produce similar results", {
-set.seed(4)
-X <- matrix(rnorm(600), 30, 20)
-corX <- cor(cbind(X))
-block_diag_structure <- block_diag(corX, c=0.3)
-table(block_diag_structure)
-# We test group 2 as r = 2 here. Setting d0 >= 2 will make selective_p_val() use selective_p_val_integrate() for approximation. 
-set.seed(1)
-p_integrate <- selective_p_val(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=5, mc_iter=1000)
-set.seed(1)
-# Setting d0 = 0 forces selective_p_val() to use selective_p_val_MC() for approximation, even if r = 1
-p_MC <- selective_p_val(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=0, mc_iter=1000)
-testthat::expect_true(abs(p_integrate - p_MC) < 0.025)
+  testthat::skip_on_cran()
+  set.seed(4)
+  X <- matrix(rnorm(600), 30, 20)
+  corX <- cor(cbind(X))
+  block_diag_structure <- block_diag(corX, c=0.3)
+  table(block_diag_structure)
+  # We test group 2 as r = 2 here. Setting d0 >= 2 will make selective_p_val() use selective_p_val_integrate() for approximation. 
+  p_integrate <- selective_p_val(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=5, mc_iter=0)
+  set.seed(1)
+  # Setting d0 = 0 forces selective_p_val() to use selective_p_val_MC() for approximation, even if r = 1
+  p_MC <- selective_p_val(S=cov(X), CP=block_diag_structure, k=2, n=30, c=0.3, d0=0, mc_iter=1000)
+  testthat::expect_true(abs(p_integrate - p_MC) < 0.025)
 })
 
