@@ -369,6 +369,7 @@ testthat::test_that("classical_p_val() works", {
 ```
 
 **ARKA: Please add a test of the `rp==1` case to ensure that this part of the code works as well.**
+**Does the following not work?**
 
 We add an additional test to check if the function `classical_p_val()` works in the case of $r=1$. 
 
@@ -569,7 +570,7 @@ where $\mathbf{R}\left( \mathbf S\right)$ denotes the correlation matrix corresp
 \mathbf S_{\hat{\mathcal{P}},\hat{\mathcal{P}}^c}'\left(\mathbf x, {\hat{\mathcal{P}}}, \left\{\lambda_i\right\}_{i= 1}^{r}\right) := \mathbf U \left(\mathbf x\right) \mathrm{diag}\left(\lambda_1, \lambda_2, \ldots, \lambda_{r\left({\mathcal{R}}\right)}\right) \mathbf V \left(\mathbf x\right)^\top,
 \end{equation}
 
-where, $\mathbf U \left(\mathbf x\right)$ and $\mathbf V \left(\mathbf x\right)$ are the left and right singular vectors of $\bS_{\P,\P^c}\left(\mathbf x\right)$ respectively, i.e. $\mathbf U \left(\mathbf x\right) = \left(\bS_{\P,\P}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{\bA}\left(\mathbf x\right)$ and $\mathbf V \left(\mathbf x\right) = \left(\bS_{\P^c,\P^c}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{\bGamma}\left(\mathbf x\right)$. 
+where, $\mathbf U \left(\mathbf x\right)$ and $\mathbf V \left(\mathbf x\right)$ are the left and right canonical vectors of $\bS_{\P,\P^c}\left(\mathbf x\right)$ respectively, i.e. $\mathbf U \left(\mathbf x\right) = \left(\bS_{\P,\P}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{\bA}\left(\mathbf x\right)$ and $\mathbf V \left(\mathbf x\right) = \left(\bS_{\P^c,\P^c}\left(\mathbf x\right)\right)^{\frac{1}{2}}\hat{\bGamma}\left(\mathbf x\right)$. 
 
 **ARKA: I don't think it is true that $\mathbf U \left(\mathbf x\right)$ are the left singular vectors of $\bS_{\P,\P^c}\left(\mathbf x\right)$.**
 
