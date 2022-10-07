@@ -16,7 +16,7 @@ group \eqn{i^{th}} variable belongs to}
 
 \item{n}{sample size}
 
-\item{mc_iter}{the number of Monte Carlo iterations to approximate the p-value}
+\item{mc_iter}{the number of Monte Carlo iterations used to approximate the p-value; we recommend using a high value of this to obtain an approximation with high accuracy; default value is 1,000}
 }
 \value{
 The p-value for the test of independence.

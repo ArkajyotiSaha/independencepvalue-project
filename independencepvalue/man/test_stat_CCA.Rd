@@ -22,16 +22,16 @@ A list containing the following items:
 
 \item{S22}{\eqn{S_{P^c, P^c}} if \eqn{2|P| \ge p}, else \eqn{S_{P, P}}.}
 
-\item{left_SV}{Left singular vectors of  \eqn{S_{P, P^c}}.}
+\item{left_SV}{Left canonical vectors of  \eqn{S_{P, P^c}}.}
 
-\item{right_SV}{Right singular vectors of \eqn{S_{P, P^c}}.}
+\item{right_SV}{Right canonical vectors of \eqn{S_{P, P^c}}.}
 }
 \description{
 Given a sample covariance matrix \eqn{S} and a group of variables \eqn{P}, first
 computes the cross-covariance matrix between the whitened variables:
 \eqn{S_{P, P^c}^W = S_{P, P}^{-0.5} S_{P, P^c} S_{P^c, P^c}^{-0.5}}. Next,
 computes the SVD of \eqn{S_{P, P^c}^W} and returns the test statistic,
-\eqn{S_{P, P}}, \eqn{S_{P^c, P^c}} and the singular vectors
+\eqn{S_{P, P}}, \eqn{S_{P^c, P^c}} and the canonical vectors
 of \eqn{S_{P, P^c}}.
 }
 \keyword{internal}

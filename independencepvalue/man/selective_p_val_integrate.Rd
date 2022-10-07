@@ -4,7 +4,7 @@
 \alias{selective_p_val_integrate}
 \title{Compute selective p-value using numerical integration}
 \usage{
-selective_p_val_integrate(n, L, g, test_hyp)
+selective_p_val_integrate(n, L, g, test_hyp, tol = 1e-05, maxeval = 10000)
 }
 \arguments{
 \item{n}{sample size}
@@ -14,6 +14,10 @@ selective_p_val_integrate(n, L, g, test_hyp)
 \item{g}{vector used to define conditioning set}
 
 \item{test_hyp}{output of \code{test_stat_CCA()}}
+
+\item{tol}{the relative tolerance used to approximate the p-value using \code{selective_p_val_integrate()}; default value is 1e-05}
+
+\item{maxeval}{the maximum number of function evaluations used to approximate the p-value using \code{selective_p_val_integrate()}; we recommend using a high value of this to obtain an approximation with high accuracy; default value is 10,000}
 }
 \description{
 Compute selective p-value using numerical integration

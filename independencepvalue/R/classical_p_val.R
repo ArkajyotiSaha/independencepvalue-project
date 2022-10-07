@@ -11,7 +11,7 @@
 #' group \eqn{i^{th}} variable belongs to
 #' @param k the group to be tested for independence with the remaining variables, i.e. \eqn{P = [i : CP[i]==k]}
 #' @param n sample size
-#' @param mc_iter the number of Monte Carlo iterations to approximate the p-value
+#' @param mc_iter the number of Monte Carlo iterations used to approximate the p-value; we recommend using a high value of this to obtain an approximation with high accuracy; default value is 1,000
 #' @return The p-value for the test of independence. 
 #' @examples
 #' # Simulates a 10 x 3 X_1 from N(0, I)
