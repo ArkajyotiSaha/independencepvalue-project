@@ -22,6 +22,10 @@ Imports:
     data.table,
     future.apply,
     geometry,
+    graphics,
+    grDevices,
+    igraph,
+    plot.matrix,
     rcdd,
     SimplicialCubature,
     stats,
@@ -30,4 +34,4 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 LitrVersionUsed: 0.0.3
-LitrId: 8e6435b3f241df909dcdbca70d66d442
+LitrId: 329705d342c93ff408166e5abfc7e779

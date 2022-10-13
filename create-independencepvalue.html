@@ -657,7 +657,8 @@ covX &lt;- cov(cbind(X_1, X_2))
 #' 
 #' @param R a \eqn{p \times p} correlation matrix
 #' @param c a threshold
-#' @return A \eqn{p} length integer vector whose \eqn{i^{th}} element denotes the group \eqn{i^{th}} variable belongs to.
+#' @param fig a logical input; if `TRUE`, plots `R`, the adjacency matrix obtained by thresholding `R`, and the undirected graph corresponding to the adjacency matrix; default value is `FALSE`
+#' @return A \eqn{p} length integer vector whose \eqn{i^{th}} element denotes the group \eqn{i^{th}} variable belongs to. If `fig = TRUE`, returns the plots for `R`, the adjacency matrix obtained by thresholding `R`, and the undirected graph corresponding to the adjacency matrix.
 #' @examples
 #' # Simulates a 10 x 5 X from N(0, I)
 #' set.seed(1)
@@ -667,12 +668,28 @@ covX &lt;- cov(cbind(X_1, X_2))
 #' # Compute the block diagonal structure at c=0.5
 #' <a href='#block_diag'>block_diag</a>(R=corX, c=0.5)
 #' @export 
-<span id='block_diag'>block_diag</span> &lt;- function(R, c){
+<span id='block_diag'>block_diag</span> &lt;- function(R, c, fig = FALSE){
   dis_R &lt;- 1 - abs(R)
   test &lt;- stats::as.dist(dis_R, diag = TRUE)
   clust_result &lt;- stats::hclust(test, method = &quot;single&quot;)
-  return(stats::cutree(clust_result, h = (1 - c)))
+  if(!fig){
+    return(stats::cutree(clust_result, h = (1 - c)))
+  }
+  if(fig){
+    adj &lt;- 2*(abs(R) &gt; 0.5)/2
+    g1 &lt;- igraph::graph_from_adjacency_matrix(adj , diag = F, mode = &quot;undirected&quot;)  
+    graphics::par(mfrow=c(1,3))
+    plot(R, breaks=c(0, 1), main=&quot;Absolute sample correlation&quot;, xlab=NA, ylab=NA, col=rev(grDevices::heat.colors(10)), fmt.key=&quot;%.1f&quot;)
+    plot(adj,  main=&quot;Adjacency Matrix&quot;, xlab=NA, ylab=NA, col=rev(grDevices::heat.colors(10))[c(1,10)], fmt.key=&quot;%.1f&quot;, breaks = 2)
+    igraph::plot.igraph(g1, vertex.size = 30, main= &quot;Graph&quot;)
+    return(stats::cutree(clust_result, h = (1 - c)))
+  }
 }</code></pre>
+<p>We have used the <code>grDevices</code>, <code>graphics</code>, and <code>igraph</code> for plotting the matrices and the graph, so we import these packages:</p>
+<pre class="r"><code>usethis::use_package(&quot;grDevices&quot;)
+usethis::use_package(&quot;graphics&quot;)
+usethis::use_package(&quot;igraph&quot;)
+usethis::use_package(&quot;plot.matrix&quot;)</code></pre>
 <p>A test to check if <code><a href='#block_diag'>block_diag</a>()</code> works:</p>
 <pre class="r"><code>testthat::test_that(&quot;<a href='#block_diag'>block_diag</a>() works&quot;, {
   set.seed(1)
@@ -1090,32 +1107,8 @@ litr::document() # &lt;-- use instead of devtools::document()</code></pre>
 ## * checking for empty or unneeded directories
 ## * building ‘independencepvalue_0.0.2.tar.gz’</code></pre>
 <pre><code>## [1] &quot;/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue_0.0.2.tar.gz&quot;</code></pre>
-<pre class="r"><code>devtools::install()</code></pre>
-<pre><code>## 
-## * checking for file ‘/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue/DESCRIPTION’ ... OK
-## * preparing ‘independencepvalue’:
-## * checking DESCRIPTION meta-information ... OK
-## * checking for LF line-endings in source and make files and shell scripts
-## * checking for empty or unneeded directories
-## * building ‘independencepvalue_0.0.2.tar.gz’
-## 
-## Running /Library/Frameworks/R.framework/Resources/bin/R CMD INSTALL \
-##   /var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T//RtmpnnfxRN/independencepvalue_0.0.2.tar.gz \
-##   --install-tests 
-## * installing to library ‘/Users/arkajyotisaha/Library/R/x86_64/4.2/library’
-## * installing *source* package ‘independencepvalue’ ...
-## ** using staged installation
-## ** R
-## ** tests
-## ** byte-compile and prepare package for lazy loading
-## ** help
-## *** installing help indices
-## ** building package indices
-## ** testing if installed package can be loaded from temporary location
-## ** testing if installed package can be loaded from final location
-## ** testing if installed package keeps a record of temporary installation path
-## * DONE (independencepvalue)</code></pre>
-<pre class="r"><code>devtools::check(document = FALSE)</code></pre>
+<pre class="r"><code>#devtools::install()
+devtools::check(document = FALSE)</code></pre>
 <pre><code>## ══ Building ════════════════════════════════════════════════════════════════════
 ## Setting env vars:
 ## • CFLAGS    : -Wall -pedantic
@@ -1138,7 +1131,7 @@ litr::document() # &lt;-- use instead of devtools::document()</code></pre>
 ## • _R_CHECK_FORCE_SUGGESTS_      : FALSE
 ## • NOT_CRAN                      : true
 ## ── R CMD check ─────────────────────────────────────────────────────────────────
-## * using log directory ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmpnnfxRN/independencepvalue.Rcheck’
+## * using log directory ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmpnZJodW/independencepvalue.Rcheck’
 ## * using R version 4.2.1 (2022-06-23)
 ## * using platform: x86_64-apple-darwin17.0 (64-bit)
 ## * using session charset: UTF-8
@@ -1172,7 +1165,9 @@ litr::document() # &lt;-- use instead of devtools::document()</code></pre>
 ## * checking whether the namespace can be loaded with stated dependencies ... OK
 ## * checking whether the namespace can be unloaded cleanly ... OK
 ## * checking loading without being on the library search path ... OK
-## * checking dependencies in R code ... OK
+## * checking dependencies in R code ... NOTE
+## Namespace in Imports field not imported from: ‘plot.matrix’
+##   All declared Imports should be used.
 ## * checking S3 generic/method consistency ... OK
 ## * checking replacement functions ... OK
 ## * checking foreign function calls ... OK
@@ -1189,17 +1184,24 @@ litr::document() # &lt;-- use instead of devtools::document()</code></pre>
 ## * checking examples ... OK
 ## * checking for unstated dependencies in ‘tests’ ... OK
 ## * checking tests ...
-##   Running ‘testthat.R’ [148s/148s]
+##   Running ‘testthat.R’ [177s/179s]
 ##  OK
 ## * checking for non-standard things in the check directory ... OK
 ## * checking for detritus in the temp directory ... OK
 ## * DONE
 ## 
-## Status: OK</code></pre>
+## Status: 1 NOTE
+## See
+##   ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmpnZJodW/independencepvalue.Rcheck/00check.log’
+## for details.</code></pre>
 <pre><code>## ── R CMD check results ─────────────────────────── independencepvalue 0.0.2 ────
-## Duration: 2m 45.6s
+## Duration: 3m 18.7s
 ## 
-## 0 errors ✔ | 0 warnings ✔ | 0 notes ✔</code></pre>
+## ❯ checking dependencies in R code ... NOTE
+##   Namespace in Imports field not imported from: ‘plot.matrix’
+##     All declared Imports should be used.
+## 
+## 0 errors ✔ | 0 warnings ✔ | 1 note ✖</code></pre>
 </div>
 
 

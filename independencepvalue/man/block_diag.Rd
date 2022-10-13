@@ -4,15 +4,17 @@
 \alias{block_diag}
 \title{Function to obtain block diagonal structure through thresholding}
 \usage{
-block_diag(R, c)
+block_diag(R, c, fig = FALSE)
 }
 \arguments{
 \item{R}{a \eqn{p \times p} correlation matrix}
 
 \item{c}{a threshold}
+
+\item{fig}{a logical input; if \code{TRUE}, plots \code{R}, the adjacency matrix obtained by thresholding \code{R}, and the undirected graph corresponding to the adjacency matrix; default value is \code{FALSE}}
 }
 \value{
-A \eqn{p} length integer vector whose \eqn{i^{th}} element denotes the group \eqn{i^{th}} variable belongs to.
+A \eqn{p} length integer vector whose \eqn{i^{th}} element denotes the group \eqn{i^{th}} variable belongs to. If \code{fig = TRUE}, returns the plots for \code{R}, the adjacency matrix obtained by thresholding \code{R}, and the undirected graph corresponding to the adjacency matrix.
 }
 \description{
 Given a correlation matrix \eqn{R}, this function discovers the block-diagonal structure by thresholding the absolute values of the entries of the correlation matrix at \eqn{c}. We create an adjacency matrix with the elements being 1 if and only if the corresponding member of the correlation matrix has an absolute value \eqn{\ge c}. This is equivalent to performing a single linkage hierarchical clustering on the variables, with the distance matrix given by \eqn{1 - |R|} and cutting the tree at height \eqn{1-c}.
