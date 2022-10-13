@@ -1,0 +1,176 @@
+---
+title: "Tutorial: using `independencepvalue` for testing independence of data-driven groups after thresholding"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{inference_tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+\newcommand{\bA}{{\bf A}}
+\newcommand{\bX}{{\bf X}}
+\newcommand{\bx}{{\bf x}}
+\newcommand{\bI}{{\bf I}}
+\newcommand{\bW}{{\bf W}}
+\newcommand{\bS}{{\bf S}}
+\newcommand{\bT}{{\bf T}}
+\newcommand{\bL}{{\bf L}}
+\newcommand{\bg}{{\bf g}}
+\newcommand{\bSigma}{{\boldsymbol\Sigma}}
+\newcommand{\bLambda}{{\boldsymbol\Lambda}}
+\newcommand{\bGamma}{{\boldsymbol\Gamma}}
+\newcommand{\blambda}{\boldsymbol\lambda}
+\newcommand{\P}{{\mathcal P}}
+\newcommand{\hP}{\hat{\mathcal P}}
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+In this tutorial, we demonstrate how to use the `independencepvalue` to test the independence of a group of variables with the remaining variables of a dataset, obtained by thresholding the correlation matrix. 
+
+# Introduction
+Let $\bX\sim N_{n\times p}(0,\bI_n,\bSigma)$, and $\bx$ be a realization of $\bX$. This package tests if a particular block of the covariance matrix is zero or not, i.e.
+
+$$
+H_0^\P:\bSigma_{\P,\P^c}={\bf 0}~~\text{versus}~~H_1^\P:\bSigma_{\P,\P^c}\neq{\bf 0}.
+$$
+
+There are two main parts of this package:
+
+1. [P-values in the case of pre-specified groups:](#pre-specified) We compute the p-value under the classical context in which $\P$ is assumed to be pre-specified (i.e., not selected based on the data used for testing).  While this is not the focus of the package, some users may find this useful, and it will also be useful in comparing performance with 2b. below. Here, we compute the p-value as 
+$$
+p_{classical} = P \left( T(\bX) \text{ is more extreme than } T(\bx) \text{ under } H_0^\P\right),
+$$
+where $T(\bX)$ denotes the test statistic corresponding to $\bX$.
+
+2. [P-values in the case of data-dependent groups:](#data-dependent)
+    a. [Partitioning variables into groups:](#partition) Here we implement a straightforward partitioning strategy based on thresholding the correlation matrix.
+    b. [P-values in the case of selected groups:](#selective) This is the heart of the package.  It computes p-values in the case that $\hP = \hP(\bx)$ is the result of the partitioning implemented in 2a. Since in this case the group of variables is data-dependent, we write our tested hypothesis as 
+$$
+H_0^{\hP}:\bSigma_{\hP,\hP^c}={\bf 0}~~\text{versus}~~H_1^{\hP}:\bSigma_{\hP,\hP^c}={\bf 0}.
+$$
+Here, while computing the p-value, we only consider the realizations of $\bX$, where applying the thresholding in 2a. recovers the observed partitioning in data $\bx$, i.e.
+$$
+p_{selective} = P \left( T(\bX) \text{ is more extreme than } T(\bx) \text{ under } H_0^\P \bigg| \text{ Applying 2a. on } \bX \text{ recovers } \hP\right).
+$$
+
+
+First, we load `independencepvalue` and other packages that we will be using for simulation:
+```{r setup, message=FALSE, warning=FALSE}
+library(independencepvalue)
+library(MASS)
+library(Matrix)
+library(QRM)
+```
+
+Next, we demonstrate the use of the three parts of the package on two simulated data sets.
+
+# Simulated data from the global null
+
+First suppose that, we have $\bSigma  =  \mathbf I_6$ and $n=9$. We first generate this data
+```{r gen_nul}
+n <- 9
+p <- 6
+Sigma <- diag(p)
+set.seed(123)
+X <- MASS::mvrnorm(n=n, rep(0, p), Sigma)
+```
+
+
+Next, we plot the heatmap of the alsolute values of the true correlation matrix and the sample correlation matrix:
+```{r heatmap_null, fig.height = 5, fig.width = 8, fig.align = "center", dpi = 100}
+library(plot.matrix)
+par(fig=c(0.01, 0.5, 0, 0.8))
+plot(Sigma, breaks=c(0, 1), main="(a) Absolute population correlation", xlab=NA, ylab=NA, col=rev(heat.colors(10)), key=NULL)
+par(fig=c(0.51, 1, 0, 0.8),new=TRUE)
+plot(abs(cor(X)), breaks=c(0, 1), main="(b) Absolute sample correlation", xlab=NA, ylab=NA, col=rev(heat.colors(10)), key=NULL)
+par(fig=c(0, 1, 0, 1),new=TRUE)
+rect(
+  head(seq(0.85, 5.85, 5/10), -1),
+  6.75,
+  tail(seq(0.85, 5.85, 5/10), -1),
+  7,
+  col=rev(heat.colors(10))
+)
+mtext((1:10)/10, side=3, at=tail(seq(0.85, 5.85, 5/10), -1)-0.25)
+```
+Next, we will use [thresholding](#partition) at cutoff $c = 0.5$ on the sample correlation matrix to obtain a patitioning of the variables:
+```{r thresholding_null}
+block_diag_structure <- independencepvalue::block_diag(cor(X), c=0.5)
+block_diag_structure
+```
+
+Next, we apply the proposed [selective approach](#selective) to test the independence of the variables in group `k = 4` with the remaining variables:
+```{r selective_null}
+set.seed(123)
+select_p_val_null <- independencepvalue::selective_p_val(S=cov(X), CP=block_diag_structure, k=4, n=n, c=0.5, d0=5, mc_iter=1000)
+select_p_val_null
+```
+Here, we observe that with a p-value of `r round(select_p_val_null, 3)`, the selective approach correctly fails to reject the null hypothesis and identifies the variables in group `4` to be independendent of the other variables. Next, we will be considering a case, where the variables are not independent in the generating model. 
+
+
+# Simulated data with correlated variables
+
+We now demonstrate the performance of the selective approach on a simple simulated dataset, where all the variables are correlated. Here, we consider the example of the dataset used in the Overview. We first simulate the data:
+```{r simulate_alt}
+p <- 6
+n <- 9
+a <- 0.6
+b <- 0.3
+
+Sigma_11 <- QRM::equicorr(p/2, a)
+Sigma_22 <- QRM::equicorr(p/2, a)
+
+Sigma <- as.matrix(Matrix::bdiag(Sigma_11, Sigma_22))
+Sigma[((p/2+1):p), (1:p/2)] <- b
+Sigma[(1:p/2), ((p/2+1):p)] <- b
+
+i0 <- 9768
+set.seed(i0)
+X <- MASS::mvrnorm(n=n, rep(0, p), Sigma)
+```
+
+Next, we plot the heatmap of the alsolute values of the true correlation matrix and the sample correlation matrix:
+
+```{r plot_alt, fig.height = 5, fig.width = 8, fig.align = "center", dpi = 100}
+library(plot.matrix)
+par(fig=c(0.01, 0.5, 0, 0.8))
+plot(Sigma, breaks=c(0, 1), main="(a) Absolute population correlation", xlab=NA, ylab=NA, col=rev(heat.colors(10)), key=NULL)
+par(fig=c(0.51, 1, 0, 0.8),new=TRUE)
+plot(abs(cor(X)), breaks=c(0, 1), main="(b) Absolute sample correlation", xlab=NA, ylab=NA, col=rev(heat.colors(10)), key=NULL)
+par(fig=c(0, 1, 0, 1),new=TRUE)
+rect(
+  head(seq(0.85, 5.85, 5/10), -1),
+  6.75,
+  tail(seq(0.85, 5.85, 5/10), -1),
+  7,
+  col=rev(heat.colors(10))
+)
+mtext((1:10)/10, side=3, at=tail(seq(0.85, 5.85, 5/10), -1)-0.25)
+```
+
+
+First, we partition the variables by applying thresholding on the absolute values of the correlation matrix at $c=0.5$:
+```{r thresholding_alt}
+block_diag_structure <- independencepvalue::block_diag(cor(X), c=0.5)
+block_diag_structure
+```
+
+Next we test the independence of group `1` with the remaining vaiables. First we use the classical approach:
+```{r classcial_alt}
+set.seed(i0)
+classical_p_val_alt <- independencepvalue::classical_p_val(S=cov(X), CP=block_diag_structure, k=1, n=n, mc_iter=1000)
+classical_p_val_alt
+```
+As demonstrated in the Overview, with a p-value of `r classical_p_val_alt`, the classical approach fails to reject the null hypothesis and consequently does not identify the group of variables to be correlated with the remaining variables. This primarily happens as the classical inference does not account for the fact that the hypothesis was selected from the data. Our proposed selective inference approach accounts for this:
+```{r selective_alt}
+set.seed(123)
+select_p_val_alt <- independencepvalue::selective_p_val(S=cov(X), CP=block_diag_structure, k=1, n=n, c=0.5, d0=5, mc_iter=1000)
+select_p_val_alt
+```
+We observe that the selective approach has a p-value of `r round(select_p_val_alt, 3)` and correctly identifies the group of variables to be correlated with the remaining variables. 
+
+Overall the selective inference in `independencepvalue` has higher power than that of the classical inference, while having well-calibrated type-I error. This can play a pivotal role in protecting against oversimplification of network structures in the field of genomics, genetics, neuroscience etc., which can lead to novel discovery in science. 

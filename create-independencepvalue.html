@@ -287,8 +287,8 @@ pre code {
   border-radius: 4px;
 }
 
-.tabset-dropdown > .nav-tabs > li.active:before {
-  content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -296,16 +296,9 @@ pre code {
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-  content: "";
-  border: none;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "";
+  content: "\e258";
   font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
+  border: none;
 }
 
 .tabset-dropdown > .nav-tabs > li.active {
@@ -1079,11 +1072,14 @@ set.seed(1)
 </div>
 </div>
 </div>
-<div id="documenting-the-package-and-building" class="section level2">
-<h2>Documenting the package and building</h2>
-<p>We finish by running commands that will document, build, and install the package. It may also be a good idea to check the package from within this file.</p>
+<div id="document-the-package" class="section level2">
+<h2>Document the package</h2>
+<p>This should happen before the pkgdown part.</p>
 <pre class="r"><code>rm(list = ls())
-litr::document() # &lt;-- use instead of devtools::document()</code></pre>
+litr::document()
+#devtools::build()
+#devtools::install()
+#devtools::check(document = FALSE)</code></pre>
 <pre><code>## ℹ Updating independencepvalue documentation
 ## ℹ Loading independencepvalue
 ## Writing 'NAMESPACE'
@@ -1099,109 +1095,78 @@ litr::document() # &lt;-- use instead of devtools::document()</code></pre>
 ## Writing 'selective_p_val_beta.Rd'
 ## Writing 'selective_p_val_integrate.Rd'
 ## Writing 'test_stat_CCA.Rd'</code></pre>
-<pre class="r"><code>devtools::build()</code></pre>
-<pre><code>## * checking for file ‘/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue/DESCRIPTION’ ... OK
-## * preparing ‘independencepvalue’:
-## * checking DESCRIPTION meta-information ... OK
-## * checking for LF line-endings in source and make files and shell scripts
-## * checking for empty or unneeded directories
-## * building ‘independencepvalue_0.0.2.tar.gz’</code></pre>
-<pre><code>## [1] &quot;/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue_0.0.2.tar.gz&quot;</code></pre>
-<pre class="r"><code>#devtools::install()
-devtools::check(document = FALSE)</code></pre>
-<pre><code>## ══ Building ════════════════════════════════════════════════════════════════════
-## Setting env vars:
-## • CFLAGS    : -Wall -pedantic
-## • CXXFLAGS  : -Wall -pedantic
-## • CXX11FLAGS: -Wall -pedantic
-## • CXX14FLAGS: -Wall -pedantic
-## • CXX17FLAGS: -Wall -pedantic
-## • CXX20FLAGS: -Wall -pedantic
-## * checking for file ‘/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue/DESCRIPTION’ ... OK
-## * preparing ‘independencepvalue’:
-## * checking DESCRIPTION meta-information ... OK
-## * checking for LF line-endings in source and make files and shell scripts
-## * checking for empty or unneeded directories
-## * building ‘independencepvalue_0.0.2.tar.gz’
-## 
-## ══ Checking ════════════════════════════════════════════════════════════════════
-## Setting env vars:
-## • _R_CHECK_CRAN_INCOMING_REMOTE_: FALSE
-## • _R_CHECK_CRAN_INCOMING_       : FALSE
-## • _R_CHECK_FORCE_SUGGESTS_      : FALSE
-## • NOT_CRAN                      : true
-## ── R CMD check ─────────────────────────────────────────────────────────────────
-## * using log directory ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmpnZJodW/independencepvalue.Rcheck’
-## * using R version 4.2.1 (2022-06-23)
-## * using platform: x86_64-apple-darwin17.0 (64-bit)
-## * using session charset: UTF-8
-## * using options ‘--no-manual --as-cran’
-## * checking for file ‘independencepvalue/DESCRIPTION’ ... OK
-## * this is package ‘independencepvalue’ version ‘0.0.2’
-## * package encoding: UTF-8
-## * checking package namespace information ... OK
-## * checking package dependencies ... OK
-## * checking if this is a source package ... OK
-## * checking if there is a namespace ... OK
-## * checking for executable files ... OK
-## * checking for hidden files and directories ... OK
-## * checking for portable file names ... OK
-## * checking for sufficient/correct file permissions ... OK
-## * checking serialization versions ... OK
-## * checking whether package ‘independencepvalue’ can be installed ... OK
-## * checking installed package size ... OK
-## * checking package directory ... OK
-## * checking for future file timestamps ... OK
-## * checking DESCRIPTION meta-information ... OK
-## * checking top-level files ... OK
-## * checking for left-over files ... OK
-## * checking index information ... OK
-## * checking package subdirectories ... OK
-## * checking R files for non-ASCII characters ... OK
-## * checking R files for syntax errors ... OK
-## * checking whether the package can be loaded ... OK
-## * checking whether the package can be loaded with stated dependencies ... OK
-## * checking whether the package can be unloaded cleanly ... OK
-## * checking whether the namespace can be loaded with stated dependencies ... OK
-## * checking whether the namespace can be unloaded cleanly ... OK
-## * checking loading without being on the library search path ... OK
-## * checking dependencies in R code ... NOTE
-## Namespace in Imports field not imported from: ‘plot.matrix’
-##   All declared Imports should be used.
-## * checking S3 generic/method consistency ... OK
-## * checking replacement functions ... OK
-## * checking foreign function calls ... OK
-## * checking R code for possible problems ... OK
-## * checking Rd files ... OK
-## * checking Rd metadata ... OK
-## * checking Rd line widths ... OK
-## * checking Rd cross-references ... OK
-## * checking for missing documentation entries ... OK
-## * checking for code/documentation mismatches ... OK
-## * checking Rd \usage sections ... OK
-## * checking Rd contents ... OK
-## * checking for unstated dependencies in examples ... OK
-## * checking examples ... OK
-## * checking for unstated dependencies in ‘tests’ ... OK
-## * checking tests ...
-##   Running ‘testthat.R’ [177s/179s]
-##  OK
-## * checking for non-standard things in the check directory ... OK
-## * checking for detritus in the temp directory ... OK
-## * DONE
-## 
-## Status: 1 NOTE
-## See
-##   ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmpnZJodW/independencepvalue.Rcheck/00check.log’
-## for details.</code></pre>
-<pre><code>## ── R CMD check results ─────────────────────────── independencepvalue 0.0.2 ────
-## Duration: 3m 18.7s
-## 
-## ❯ checking dependencies in R code ... NOTE
-##   Namespace in Imports field not imported from: ‘plot.matrix’
-##     All declared Imports should be used.
-## 
-## 0 errors ✔ | 0 warnings ✔ | 1 note ✖</code></pre>
+<div id="add-a-vignette" class="section level3">
+<h3>Add a vignette</h3>
+<pre class="r"><code>litr::add_vignettes(&quot;../source-files/Overview.Rmd&quot;)
+litr::add_vignettes(&quot;../source-files/Tutorial.Rmd&quot;)</code></pre>
+</div>
+<div id="add-a-pkgdown-site" class="section level3">
+<h3>Add a pkgdown site</h3>
+<p>First, let’s include the github link of our package as the URL so that we can have a link to it on our pkgdown site.</p>
+<pre class="r"><code>usethis:::use_description_field(
+  &quot;URL&quot;,
+  &quot;https://github.com/ArkajyotiSaha/independencepvalue-project/tree/main/independencepvalue&quot;
+)</code></pre>
+<pre><code>## ✔ Setting URL field in DESCRIPTION to 'https://github.com/ArkajyotiSaha/
+## independencepvalue-project/tree/main/independencepvalue'</code></pre>
+<p>Be sure that this next command appears after <code>litr::document()</code> has been called in this file.</p>
+<pre class="r"><code>litr::add_pkgdown()</code></pre>
+<pre><code>## ✔ Adding '^_pkgdown\\.yml$', '^docs$', '^pkgdown$' to '.Rbuildignore'
+## ✔ Writing '_pkgdown.yml'</code></pre>
+<pre><code>## -- Installing package into temporary library -----------------------------------
+## == Building pkgdown site =======================================================
+## Reading from: '/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue'
+## Writing to:   '/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue/docs'
+## -- Initialising site -----------------------------------------------------------
+## Copying '../../../../../Library/R/x86_64/4.2/library/pkgdown/BS5/assets/link.svg' to 'link.svg'
+## Copying '../../../../../Library/R/x86_64/4.2/library/pkgdown/BS5/assets/pkgdown.js' to 'pkgdown.js'
+## -- Building home ---------------------------------------------------------------
+## Writing 'authors.html'
+## Reading 'LICENSE.md'
+## Writing 'LICENSE.html'
+## Writing 'LICENSE-text.html'
+## Writing '404.html'
+## -- Building function reference -------------------------------------------------
+## Writing 'reference/index.html'
+## Reading 'man/MC_function_classical.Rd'
+## Writing 'reference/MC_function_classical.html'
+## Reading 'man/MC_function_selective.Rd'
+## Writing 'reference/MC_function_selective.html'
+## Reading 'man/block_diag.Rd'
+## Writing 'reference/block_diag.html'
+## Reading 'man/classical_p_val.Rd'
+## Writing 'reference/classical_p_val.html'
+## Reading 'man/dCCA.Rd'
+## Writing 'reference/dCCA.html'
+## Reading 'man/form_L.Rd'
+## Writing 'reference/form_L.html'
+## Reading 'man/sample_psi.Rd'
+## Writing 'reference/sample_psi.html'
+## Reading 'man/selective_p_val.Rd'
+## Writing 'reference/selective_p_val.html'
+## Reading 'man/selective_p_val_MC.Rd'
+## Writing 'reference/selective_p_val_MC.html'
+## Reading 'man/selective_p_val_beta.Rd'
+## Writing 'reference/selective_p_val_beta.html'
+## Reading 'man/selective_p_val_integrate.Rd'
+## Writing 'reference/selective_p_val_integrate.html'
+## Reading 'man/test_stat_CCA.Rd'
+## Writing 'reference/test_stat_CCA.html'
+## -- Building articles -----------------------------------------------------------
+## Writing 'articles/index.html'
+## Reading 'vignettes/Overview.Rmd'
+## Writing 'articles/Overview.html'
+## Reading 'vignettes/Tutorial.Rmd'
+## Writing 'articles/Tutorial.html'
+## Writing 'sitemap.xml'
+## -- Building search index -------------------------------------------------------
+## == DONE ========================================================================
+## Warning messages:
+## 1: The vignette title specified in \VignetteIndexEntry{} is different from the title in the YAML metadata. The former is &quot;independencepvalue_overview&quot;, and the latter is &quot;independencepvalue: Testing independence between data-driven groups of Gaussian variables&quot;. If that is intentional, you may set options(rmarkdown.html_vignette.check_title = FALSE) to suppress this check. 
+## 2: The vignette title specified in \VignetteIndexEntry{} is different from the title in the YAML metadata. The former is &quot;inference_tutorial&quot;, and the latter is &quot;Tutorial: using `independencepvalue` for testing independence of data-driven groups after thresholding&quot;. If that is intentional, you may set options(rmarkdown.html_vignette.check_title = FALSE) to suppress this check.</code></pre>
+<p>You can call <code>add_pkgdown()</code> without the argument; however, here we are providing a customized _pkgdown.yml file. See <a href="https://pkgdown.r-lib.org/articles/customise.html">this <code>pkgdown</code> vignette</a> for how to customize your site. Here is the contents of the <code>_pkgdown.yml</code> that was used:</p>
+<p>After this step, you can locally see the site by opening <code>docs/index.html</code> in the browser. You can then copy the <code>docs</code> directory to your website’s server and you’re done.</p>
+</div>
 </div>
 
 

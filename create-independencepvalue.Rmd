@@ -908,15 +908,42 @@ testthat::test_that("selective_p_val_integrate() and selective_p_val_MC() produc
 })
 ```
 
-## Documenting the package and building
+## Document the package
 
-We finish by running commands that will document, build, and install the package.  It may also be a good idea to check the package from within this file.
+This should happen before the pkgdown part.
 
 ```{r}
 rm(list = ls())
-litr::document() # <-- use instead of devtools::document()
-devtools::build()
+litr::document()
+#devtools::build()
 #devtools::install()
-devtools::check(document = FALSE)
+#devtools::check(document = FALSE)
 ```
 
+### Add a vignette
+
+```{r}
+litr::add_vignettes("../source-files/Overview.Rmd")
+litr::add_vignettes("../source-files/Tutorial.Rmd")
+```
+
+### Add a pkgdown site
+
+First, let's include the github link of our package as the URL so that we can have a link to it on our pkgdown site.
+
+```{r}
+usethis:::use_description_field(
+  "URL",
+  "https://github.com/ArkajyotiSaha/independencepvalue-project/tree/main/independencepvalue"
+)
+```
+
+Be sure that this next command appears after `litr::document()` has been called in this file.
+
+```{r}
+litr::add_pkgdown()
+```
+
+You can call `add_pkgdown()` without the argument; however, here we are providing a customized _pkgdown.yml file.  See [this `pkgdown` vignette](https://pkgdown.r-lib.org/articles/customise.html) for how to customize your site.  Here is the contents of the `_pkgdown.yml` that was used:
+
+After this step, you can locally see the site by opening `docs/index.html` in the browser.  You can then copy the `docs` directory to your website's server and you're done.
