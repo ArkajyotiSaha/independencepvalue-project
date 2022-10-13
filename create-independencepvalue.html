@@ -1076,10 +1076,7 @@ set.seed(1)
 <h2>Document the package</h2>
 <p>This should happen before the pkgdown part.</p>
 <pre class="r"><code>rm(list = ls())
-litr::document()
-#devtools::build()
-#devtools::install()
-#devtools::check(document = FALSE)</code></pre>
+litr::document()</code></pre>
 <pre><code>## ℹ Updating independencepvalue documentation
 ## ℹ Loading independencepvalue
 ## Writing 'NAMESPACE'
@@ -1166,6 +1163,18 @@ litr::add_vignettes(&quot;../source-files/Tutorial.Rmd&quot;)</code></pre>
 ## 2: The vignette title specified in \VignetteIndexEntry{} is different from the title in the YAML metadata. The former is &quot;inference_tutorial&quot;, and the latter is &quot;Tutorial: using `independencepvalue` for testing independence of data-driven groups after thresholding&quot;. If that is intentional, you may set options(rmarkdown.html_vignette.check_title = FALSE) to suppress this check.</code></pre>
 <p>You can call <code>add_pkgdown()</code> without the argument; however, here we are providing a customized _pkgdown.yml file. See <a href="https://pkgdown.r-lib.org/articles/customise.html">this <code>pkgdown</code> vignette</a> for how to customize your site. Here is the contents of the <code>_pkgdown.yml</code> that was used:</p>
 <p>After this step, you can locally see the site by opening <code>docs/index.html</code> in the browser. You can then copy the <code>docs</code> directory to your website’s server and you’re done.</p>
+<pre class="r"><code>devtools::build()
+#devtools::install()
+#devtools::check(document = FALSE)</code></pre>
+<pre><code>## * checking for file ‘/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue/DESCRIPTION’ ... OK
+## * preparing ‘independencepvalue’:
+## * checking DESCRIPTION meta-information ... OK
+## * installing the package to build vignettes
+## * creating vignettes ... OK
+## * checking for LF line-endings in source and make files and shell scripts
+## * checking for empty or unneeded directories
+## * building ‘independencepvalue_0.0.2.tar.gz’</code></pre>
+<pre><code>## [1] &quot;/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue_0.0.2.tar.gz&quot;</code></pre>
 </div>
 </div>
 
