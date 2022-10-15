@@ -51,8 +51,8 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="articles/Overview.html">independencepvalue: Testing independence between data-driven groups of Gaussian variables</a>
-    <a class="dropdown-item" href="articles/Tutorial.html">Tutorial: using `independencepvalue` for testing independence of data-driven groups after thresholding</a>
+    <a class="dropdown-item" href="articles/Overview.html">Overview</a>
+    <a class="dropdown-item" href="articles/Tutorial.html">Tutorial</a>
   </div>
 </li>
       </ul>
@@ -74,13 +74,21 @@
   </div>
 </nav><div class="container template-home">
 <div class="row">
-  <main id="main" class="col-md-9">
-Discovers block diagonal structure from a given covariance
-    matrix through thresholding correlations and then tests whether a
-    block is independent from the remaining variables in a fashion that
-    accounts for the selection of the blocks.  A function for testing in
-    the classical setting where these groups are predetermined is also
-    implemented.
+  <main id="main" class="col-md-9"><div class="section level1">
+<div class="page-header"><h1 id="what-does-independencepvalue-do">What does <code>independencepvalue</code> do?<a class="anchor" aria-label="anchor" href="#what-does-independencepvalue-do"></a>
+</h1></div>
+<p><code>independencepvalue</code> is an <code>R</code> package that tests the independence between two groups of Gaussian variables, where the groups were obtained by thresholding the correlation matrix.</p>
+</div>
+<div class="section level1">
+<h1 id="how-do-i-get-independencepvalue">How do I get <code>independencepvalue</code>?<a class="anchor" aria-label="anchor" href="#how-do-i-get-independencepvalue"></a>
+</h1>
+<p>We use <code>R</code> package <code>remotes</code> to install <code>independencepvalue</code> from GitHub. If not installed, please install <code>remotes</code> by using <code>install.packages("remotes")</code>. Next run,</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"ArkajyotiSaha/independencepvalue-project"</span>, subdir <span class="op">=</span> <span class="st">"independencepvalue"</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ArkajyotiSaha/independencepvalue-project/tree/main/independencepvalue" class="external-link">independencepvalue</a></span><span class="op">)</span></span></code></pre></div>
+<p>This R package is created using literate programming with the <a href="https://github.com/jacobbien/litr-project/tree/main/litr" class="external-link">litr</a> R package. To know more about <code>independencepvalue</code> generation, please visit the <a href="https://github.com/ArkajyotiSaha/independencepvalue-project" class="external-link">package repository</a>.</p>
+</div>
+
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">

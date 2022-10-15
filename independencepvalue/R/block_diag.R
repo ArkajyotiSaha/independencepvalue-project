@@ -28,8 +28,8 @@ block_diag <- function(R, c, fig = FALSE){
     adj <- 2*(abs(R) > 0.5)/2
     g1 <- igraph::graph_from_adjacency_matrix(adj , diag = F, mode = "undirected")  
     graphics::par(mfrow=c(1,3))
-    plot(R, breaks=c(0, 1), main="Absolute sample correlation", xlab=NA, ylab=NA, col=rev(grDevices::heat.colors(10)), fmt.key="%.1f")
-    plot(adj,  main="Adjacency Matrix", xlab=NA, ylab=NA, col=rev(grDevices::heat.colors(10))[c(1,10)], fmt.key="%.1f", breaks = 2)
+    graphics::image(t(abs(R))[,ncol(abs(R)):1], main="Absolute sample correlation", col=rev(grDevices::heat.colors(10)), xaxt='n', yaxt='n')
+    graphics::image(t(adj)[,ncol(adj):1], main="Adjacency Matrix", col=rev(grDevices::heat.colors(10)), xaxt='n', yaxt='n')
     igraph::plot.igraph(g1, vertex.size = 30, main= "Graph")
     return(stats::cutree(clust_result, h = (1 - c)))
   }

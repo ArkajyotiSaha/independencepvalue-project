@@ -2,4 +2,5 @@
 
 export(block_diag)
 export(classical_p_val)
+export(create_example)
 export(selective_p_val)

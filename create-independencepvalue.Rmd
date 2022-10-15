@@ -419,8 +419,8 @@ block_diag <- function(R, c, fig = FALSE){
     adj <- 2*(abs(R) > 0.5)/2
     g1 <- igraph::graph_from_adjacency_matrix(adj , diag = F, mode = "undirected")  
     graphics::par(mfrow=c(1,3))
-    plot(R, breaks=c(0, 1), main="Absolute sample correlation", xlab=NA, ylab=NA, col=rev(grDevices::heat.colors(10)), fmt.key="%.1f")
-    plot(adj,  main="Adjacency Matrix", xlab=NA, ylab=NA, col=rev(grDevices::heat.colors(10))[c(1,10)], fmt.key="%.1f", breaks = 2)
+    graphics::image(t(abs(R))[,ncol(abs(R)):1], main="Absolute sample correlation", col=rev(grDevices::heat.colors(10)), xaxt='n', yaxt='n')
+    graphics::image(t(adj)[,ncol(adj):1], main="Adjacency Matrix", col=rev(grDevices::heat.colors(10)), xaxt='n', yaxt='n')
     igraph::plot.igraph(g1, vertex.size = 30, main= "Graph")
     return(stats::cutree(clust_result, h = (1 - c)))
   }
@@ -433,7 +433,6 @@ We have used the `grDevices`, `graphics`, and `igraph` for plotting the matrices
 usethis::use_package("grDevices")
 usethis::use_package("graphics")
 usethis::use_package("igraph")
-usethis::use_package("plot.matrix")
 ```
 
 A test to check if `block_diag()` works:
@@ -908,20 +907,53 @@ testthat::test_that("selective_p_val_integrate() and selective_p_val_MC() produc
 })
 ```
 
-## Document the package
+We will perform simlation from dense population covariance matrix in the vignette. We add a code to generate the matrix below:
+```{r}
+#' Function to create a population correlation matrix for the vignette
+#' This function creates a `p` x `p` matrix where the diagonal blocks are two p/2 equicorrelation matrix with parameter `a`. The all the elements in the offdiagonal blocks of the matrix are equal to `b`. `p` has to be an even number. 
+#' 
+#' @param p total number of variables, must be even
+#' @param a parameter for the equicorrelation matrix on the diagonal blocks
+#' @param b parameter for off-diagonal blocks
+#' @return a `p` x `p` matrix.
+#' @export
+create_example <- function(p, a, b) {
+  amat <- matrix(a,p/2,p/2)
+  bmat <- matrix(b,p/2,p/2)
+  Sigma <- rbind(cbind(amat,bmat),cbind(bmat,amat))
+  diag(Sigma) <- 1
+  Sigma
+}
+```
 
-This should happen before the pkgdown part.
+We will also need the package `MASS` for vignette. We add this as a suggestion in the package:
+
+```{r}
+litr:::add_text_to_file(txt = c("    MASS,"),
+                        filename = "DESCRIPTION",
+                        location = stringr::str_which(
+                          readLines("DESCRIPTION"), "Suggests:") + 1
+                        )
+```
+
+
+## Document the package
 
 ```{r}
 rm(list = ls())
 litr::document()
 ```
 
-### Add a vignette
+### Add a README
 
 ```{r}
-litr::add_vignettes("../source-files/Overview.Rmd")
-litr::add_vignettes("../source-files/Tutorial.Rmd")
+litr::add_readme("../source-files/README.Rmd")
+```
+
+### Add vignette
+
+```{r}
+litr::add_vignettes(c("../source-files/Overview.Rmd", "../source-files/Tutorial.Rmd"))
 ```
 
 ### Add a pkgdown site
@@ -935,18 +967,15 @@ usethis:::use_description_field(
 )
 ```
 
-Be sure that this next command appears after `litr::document()` has been called in this file.
 
 ```{r}
 litr::add_pkgdown()
 ```
 
-You can call `add_pkgdown()` without the argument; however, here we are providing a customized _pkgdown.yml file.  See [this `pkgdown` vignette](https://pkgdown.r-lib.org/articles/customise.html) for how to customize your site.  Here is the contents of the `_pkgdown.yml` that was used:
-
-After this step, you can locally see the site by opening `docs/index.html` in the browser.  You can then copy the `docs` directory to your website's server and you're done.
+Next, we build and check the package. 
 
 ```{r}
 devtools::build()
 #devtools::install()
-#devtools::check(document = FALSE)
+devtools::check(document = FALSE)
 ```
