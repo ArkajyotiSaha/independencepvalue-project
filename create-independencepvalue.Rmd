@@ -42,12 +42,15 @@ usethis::create_package(
     Version = "0.0.2",
     Title = "Testing independence between groups of Gaussian variables",
     Description = "Discovers block diagonal structure from a given covariance matrix through thresholding correlations and then tests whether a block is independent from the remaining variables in a fashion that accounts for the selection of the blocks.  A function for testing in the classical setting where these groups are predetermined is also implemented.",
-    `Authors@R` = c(person(
-      given = "Arkajyoti",
-      family = "Saha",
-      email = "arkajyotisaha93@gmail.com",
-      role = c("aut", "cre")
-      ), person("Daniela", "Witten", role="aut", email="dwitten@u.washington.edu"), person("Jacob", "Bien", role="aut", email="jbien@usc.edu"))
+    `Authors@R` = c(
+      person(
+        given = "Arkajyoti",
+        family = "Saha",
+        email = "arkajyotisaha93@gmail.com",
+        role = c("aut", "cre")
+        ),
+      person("Daniela", "Witten", role="aut"),
+      person("Jacob", "Bien", role="aut"))
   )
 )
 usethis::use_mit_license(copyright_holder = "A. Saha")
@@ -154,7 +157,8 @@ test_stat_CCA <- function(S, CP, k) {
   return(list(statistic=test_stat, S11 = S11_x, S22_x = S22_x, left_SV=L_x, right_SV=t(R_x)))
 }
 ```
-We also add a code to test the function `test_stat_CCA()` works:
+
+We also add some code to test that the function `test_stat_CCA()` works:
 
 ```{r}
 testthat::test_that("test_stat_CCA() works", {
@@ -910,7 +914,10 @@ testthat::test_that("selective_p_val_integrate() and selective_p_val_MC() produc
 We will perform simlation from dense population covariance matrix in the vignette. We add a code to generate the matrix below:
 ```{r}
 #' Function to create a population correlation matrix for the vignette
-#' This function creates a `p` x `p` matrix where the diagonal blocks are two p/2 equicorrelation matrix with parameter `a`. The all the elements in the offdiagonal blocks of the matrix are equal to `b`. `p` has to be an even number. 
+#' 
+#' This function creates a `p` x `p` matrix where the diagonal blocks are two 
+#' `p/2` equicorrelation matrix with parameter `a`. The all the elements in the 
+#' offdiagonal blocks of the matrix are equal to `b`. `p` has to be an even number. 
 #' 
 #' @param p total number of variables, must be even
 #' @param a parameter for the equicorrelation matrix on the diagonal blocks
