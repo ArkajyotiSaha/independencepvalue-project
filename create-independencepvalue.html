@@ -364,15 +364,12 @@ pre code {
     Version = &quot;0.0.2&quot;,
     Title = &quot;Testing independence between groups of Gaussian variables&quot;,
     Description = &quot;Discovers block diagonal structure from a given covariance matrix through thresholding correlations and then tests whether a block is independent from the remaining variables in a fashion that accounts for the selection of the blocks.  A function for testing in the classical setting where these groups are predetermined is also implemented.&quot;,
-    `Authors@R` = c(
-      person(
-        given = &quot;Arkajyoti&quot;,
-        family = &quot;Saha&quot;,
-        email = &quot;arkajyotisaha93@gmail.com&quot;,
-        role = c(&quot;aut&quot;, &quot;cre&quot;)
-        ),
-      person(&quot;Daniela&quot;, &quot;Witten&quot;, role=&quot;aut&quot;),
-      person(&quot;Jacob&quot;, &quot;Bien&quot;, role=&quot;aut&quot;))
+    `Authors@R` = c(person(
+      given = &quot;Arkajyoti&quot;,
+      family = &quot;Saha&quot;,
+      email = &quot;arkajyotisaha93@gmail.com&quot;,
+      role = c(&quot;aut&quot;, &quot;cre&quot;)
+      ), person(&quot;Daniela&quot;, &quot;Witten&quot;, role=&quot;aut&quot;, email=&quot;dwitten@u.washington.edu&quot;), person(&quot;Jacob&quot;, &quot;Bien&quot;, role=&quot;aut&quot;, email=&quot;jbien@usc.edu&quot;))
   )
 )
 usethis::use_mit_license(copyright_holder = &quot;A. Saha&quot;)</code></pre>
@@ -459,7 +456,7 @@ usethis::use_package(&quot;future.apply&quot;)</code></pre>
   R_x &lt;- t(svdecom$v) %*% S22_x_half
   return(list(statistic=test_stat, S11 = S11_x, S22_x = S22_x, left_SV=L_x, right_SV=t(R_x)))
 }</code></pre>
-<p>We also add some code to test that the function <code><a href='#test_stat_CCA'>test_stat_CCA</a>()</code> works:</p>
+<p>We also add a code to test the function <code><a href='#test_stat_CCA'>test_stat_CCA</a>()</code> works:</p>
 <pre class="r"><code>testthat::test_that(&quot;<a href='#test_stat_CCA'>test_stat_CCA</a>() works&quot;, {
   set.seed(1)
   X &lt;- matrix(rnorm(50), 10, 5)
@@ -1073,10 +1070,7 @@ set.seed(1)
 <pre><code>## Test passed 🥳</code></pre>
 <p>We will perform simlation from dense population covariance matrix in the vignette. We add a code to generate the matrix below:</p>
 <pre class="r"><code>#' Function to create a population correlation matrix for the vignette
-#' 
-#' This function creates a `p` x `p` matrix where the diagonal blocks are two 
-#' `p/2` equicorrelation matrix with parameter `a`. The all the elements in the 
-#' offdiagonal blocks of the matrix are equal to `b`. `p` has to be an even number. 
+#' This function creates a `p` x `p` matrix where the diagonal blocks are two p/2 equicorrelation matrix with parameter `a`. The all the elements in the offdiagonal blocks of the matrix are equal to `b`. `p` has to be an even number. 
 #' 
 #' @param p total number of variables, must be even
 #' @param a parameter for the equicorrelation matrix on the diagonal blocks
@@ -1140,9 +1134,10 @@ litr::document()</code></pre>
 )</code></pre>
 <pre><code>## ✔ Setting URL field in DESCRIPTION to 'https://github.com/ArkajyotiSaha/
 ## independencepvalue-project/tree/main/independencepvalue'</code></pre>
-<pre class="r"><code>litr::add_pkgdown()</code></pre>
-<pre><code>## ✔ Adding '^_pkgdown\\.yml$', '^docs$', '^pkgdown$' to '.Rbuildignore'
-## ✔ Writing '_pkgdown.yml'</code></pre>
+<pre class="r"><code>litr::add_pkgdown(&quot;../source-files/_pkgdown.yml&quot;)</code></pre>
+<pre><code>## ✔ Adding '^_pkgdown\\.yml$', '^docs$', '^pkgdown$' to '.Rbuildignore'</code></pre>
+<pre><code>## Warning in readLines(con, warn = readLines.warn): incomplete final line found on
+## './_pkgdown.yml'</code></pre>
 <pre><code>## -- Installing package into temporary library -----------------------------------
 ## == Building pkgdown site =======================================================
 ## Reading from: '/Users/arkajyotisaha/Dropbox/Brainstorming Ideas/independencepvalue_package/independencepvalue-project/independencepvalue'
@@ -1231,7 +1226,7 @@ devtools::check(document = FALSE)</code></pre>
 ## • _R_CHECK_PACKAGES_USED_IGNORE_UNUSED_IMPORTS_: FALSE
 ## • NOT_CRAN                                     : true
 ## ── R CMD check ─────────────────────────────────────────────────────────────────
-## * using log directory ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmppG4KBY/file10b2058221a5d/independencepvalue.Rcheck’
+## * using log directory ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmpOLjJvO/file35fb2784f6a/independencepvalue.Rcheck’
 ## * using R version 4.2.1 (2022-06-23)
 ## * using platform: x86_64-apple-darwin17.0 (64-bit)
 ## * using session charset: UTF-8
@@ -1285,7 +1280,7 @@ devtools::check(document = FALSE)</code></pre>
 ## * checking examples ... OK
 ## * checking for unstated dependencies in ‘tests’ ... OK
 ## * checking tests ...
-##   Running ‘testthat.R’ [156s/156s]
+##   Running ‘testthat.R’ [146s/147s]
 ##  OK
 ## * checking for unstated dependencies in vignettes ... OK
 ## * checking package vignettes in ‘inst/doc’ ... OK
@@ -1296,7 +1291,7 @@ devtools::check(document = FALSE)</code></pre>
 ## 
 ## Status: OK</code></pre>
 <pre><code>## ── R CMD check results ─────────────────────────── independencepvalue 0.0.2 ────
-## Duration: 3m 15.1s
+## Duration: 2m 57.1s
 ## 
 ## 0 errors ✔ | 0 warnings ✔ | 0 notes ✔</code></pre>
 </div>
