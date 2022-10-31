@@ -20,8 +20,7 @@ library(independencepvalue)
 p <- 6
 n <- 9
 Sigma <- create_example(p, a = 0.6, b = 0.3)
-i0 <- 9768
-set.seed(i0)
+set.seed(9768)
 X <- MASS::mvrnorm(n=n, rep(0, p), Sigma)
 ```
 

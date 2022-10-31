@@ -2,8 +2,7 @@
 % Please edit documentation in create-independencepvalue.Rmd.
 \name{create_example}
 \alias{create_example}
-\title{Function to create a population correlation matrix for the vignette
-This function creates a \code{p} x \code{p} matrix where the diagonal blocks are two p/2 equicorrelation matrix with parameter \code{a}. The all the elements in the offdiagonal blocks of the matrix are equal to \code{b}. \code{p} has to be an even number.}
+\title{Function to create a population correlation matrix for the vignette}
 \usage{
 create_example(p, a, b)
 }
@@ -18,6 +17,5 @@ create_example(p, a, b)
 a \code{p} x \code{p} matrix.
 }
 \description{
-Function to create a population correlation matrix for the vignette
 This function creates a \code{p} x \code{p} matrix where the diagonal blocks are two p/2 equicorrelation matrix with parameter \code{a}. The all the elements in the offdiagonal blocks of the matrix are equal to \code{b}. \code{p} has to be an even number.
 }
