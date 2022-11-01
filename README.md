@@ -4,7 +4,7 @@ This R package is created using literate programming with the  [litr](https://gi
 
 ## Code for generating the `independencepvalue` package
 
-After cloning this repo...
+After cloning this repo, please use
 
 ```r
 remotes::install_github("jacobbien/litr-project", subdir = "litr")
