@@ -2,7 +2,8 @@
 
 #' Function to create a population correlation matrix for the vignette
 #' 
-#' This function creates a `p` x `p` matrix where the diagonal blocks are two p/2 equicorrelation matrix with parameter `a`. The all the elements in the offdiagonal blocks of the matrix are equal to `b`. `p` has to be an even number. 
+#' This function creates a `p` x `p` matrix where the diagonal blocks are two `p/2` equicorrelation matrix with parameter `a`. All the elements in the off-diagonal 
+#' blocks of the matrix are equal to `b`. `p` has to be an even number. 
 #' 
 #' @param p total number of variables, must be even
 #' @param a parameter for the equicorrelation matrix on the diagonal blocks

@@ -1,3 +1,6 @@
+# put the docs folder where github pages will find it:
+destination: ../docs/
+
 url: ~
 template:
   bootstrap: 5

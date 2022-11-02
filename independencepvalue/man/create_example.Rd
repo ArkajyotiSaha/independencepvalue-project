@@ -17,5 +17,6 @@ create_example(p, a, b)
 a \code{p} x \code{p} matrix.
 }
 \description{
-This function creates a \code{p} x \code{p} matrix where the diagonal blocks are two p/2 equicorrelation matrix with parameter \code{a}. The all the elements in the offdiagonal blocks of the matrix are equal to \code{b}. \code{p} has to be an even number.
+This function creates a \code{p} x \code{p} matrix where the diagonal blocks are two \code{p/2} equicorrelation matrix with parameter \code{a}. All the elements in the off-diagonal
+blocks of the matrix are equal to \code{b}. \code{p} has to be an even number.
 }
