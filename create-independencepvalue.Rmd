@@ -1,7 +1,7 @@
 ---
 title: "Creating the ``r params$package_name`` R package"
 author: "Arkajyoti Saha"
-date: "October 6, 2022"
+date: "November 1, 2022"
 knit: litr::render
 params:
   package_name: "independencepvalue" # <-- change this to your package name
@@ -951,7 +951,7 @@ litr::document()
 litr::add_readme("../source-files/README.Rmd")
 ```
 
-### Add vignette
+### Add a vignette
 
 ```{r}
 litr::add_vignettes(c("../source-files/Overview.Rmd", "../source-files/Tutorial.Rmd"))

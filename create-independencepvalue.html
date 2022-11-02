@@ -11,7 +11,7 @@
 
 <meta name="author" content="Arkajyoti Saha" />
 
-<meta name="date" content="2022-10-06" />
+<meta name="date" content="2022-11-01" />
 
 <title>Creating the independencepvalue R package</title>
 
@@ -345,7 +345,7 @@ pre code {
 
 <h1 class="title toc-ignore">Creating the <code>independencepvalue</code> R package</h1>
 <h4 class="author">Arkajyoti Saha</h4>
-<h4 class="date">October 6, 2022</h4>
+<h4 class="date">November 1, 2022</h4>
 
 </div>
 
@@ -1122,8 +1122,8 @@ litr::document()</code></pre>
 ## ✔ Creating '.git/hooks/'
 ## ✔ Writing '.git/hooks/pre-commit'</code></pre>
 </div>
-<div id="add-vignette" class="section level3">
-<h3>Add vignette</h3>
+<div id="add-a-vignette" class="section level3">
+<h3>Add a vignette</h3>
 <pre class="r"><code>litr::add_vignettes(c(&quot;../source-files/Overview.Rmd&quot;, &quot;../source-files/Tutorial.Rmd&quot;))</code></pre>
 </div>
 <div id="add-a-pkgdown-site" class="section level3">
@@ -1227,7 +1227,7 @@ devtools::check(document = FALSE)</code></pre>
 ## • _R_CHECK_PACKAGES_USED_IGNORE_UNUSED_IMPORTS_: FALSE
 ## • NOT_CRAN                                     : true
 ## ── R CMD check ─────────────────────────────────────────────────────────────────
-## * using log directory ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmpmqJ2ep/file1fa22fef325c/independencepvalue.Rcheck’
+## * using log directory ‘/private/var/folders/y5/t66xj7ws75j9kjgy8cv_w02r0000gn/T/RtmpcusNud/file34bb2bb40299/independencepvalue.Rcheck’
 ## * using R version 4.2.1 (2022-06-23)
 ## * using platform: x86_64-apple-darwin17.0 (64-bit)
 ## * using session charset: UTF-8
@@ -1281,7 +1281,7 @@ devtools::check(document = FALSE)</code></pre>
 ## * checking examples ... OK
 ## * checking for unstated dependencies in ‘tests’ ... OK
 ## * checking tests ...
-##   Running ‘testthat.R’ [229s/232s]
+##   Running ‘testthat.R’ [173s/176s]
 ##  OK
 ## * checking for unstated dependencies in vignettes ... OK
 ## * checking package vignettes in ‘inst/doc’ ... OK
@@ -1292,7 +1292,7 @@ devtools::check(document = FALSE)</code></pre>
 ## 
 ## Status: OK</code></pre>
 <pre><code>## ── R CMD check results ─────────────────────────── independencepvalue 0.0.2 ────
-## Duration: 4m 51.1s
+## Duration: 3m 32.3s
 ## 
 ## 0 errors ✔ | 0 warnings ✔ | 0 notes ✔</code></pre>
 </div>
