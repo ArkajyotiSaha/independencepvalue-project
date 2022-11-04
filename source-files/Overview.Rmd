@@ -55,7 +55,7 @@ round(selective_p_val, 3)`. Unlike classical inference, this test correctly iden
  1. First, we threshold the absolute values of the observed correlation matrix to partition the variables into groups of seemingly uncorrelated variables. 
  2. Next, we take a selective inference approach to test if a group of variables (obtained in the previous step) is independent of the remaining variables. Here, unlike the classical approach, we do not ignore that the hypothesis was generated from the data. We account for this by conditioning on the event that the grouping of the variables that generated the hypothesis is recovered. We adjust the null distribution to account for the selection of the particular hypothesis being tested. By restricting attention to specifically those datasets that would have led to this hypothesis being selected, we are able to account for the selection effect.
 
-For more details, please see our paper, [Inferring independent sets of Gaussian variables after thresholding correlations](XXXX.arxiv.org).
+For more details, please see our paper, [Inferring independent sets of Gaussian variables after thresholding correlations](https://arxiv.org/abs/2211.01521).
 
 
 

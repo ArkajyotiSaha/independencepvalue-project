@@ -11,7 +11,7 @@ by thresholding the correlation matrix. For a brief overview explaining
 why `independencepvalue` is needed and how it works, see
 [here](articles/Overview.html). For the full explanation, you can read
 our paper [Inferring independent sets of Gaussian variables after
-thresholding correlations](XXXX.arxiv.org).
+thresholding correlations](https://arxiv.org/abs/2211.01521).
 
 ## How do I get `independencepvalue`?
 

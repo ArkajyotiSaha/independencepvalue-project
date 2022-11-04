@@ -37,5 +37,3 @@ Suggests:
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://github.com/ArkajyotiSaha/independencepvalue-project/tree/main/independencepvalue
-LitrVersionUsed: 0.5.0
-LitrId: 38256863f6fa4a174df890b0ca56d0fd
