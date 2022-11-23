@@ -1,7 +1,7 @@
 ---
 title: "Creating the ``r params$package_name`` R package"
 author: "Arkajyoti Saha"
-date: "November 3, 2022"
+date: "November 22, 2022"
 knit: litr::render
 params:
   package_name: "independencepvalue" # <-- change this to your package name
